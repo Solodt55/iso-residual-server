@@ -4,10 +4,10 @@ export const handleWebhook = async (req, res) => {
     const eventType = req.headers['x-event-type'] || 'unknown';
     
     // Log the incoming webhook data
-    console.log(`Received webhook event type: ${eventType}`, {
-      headers: req.headers,
-      body: webhookData
-    });
+    // console.log(`Received webhook event type: ${eventType}`, {
+    //   headers: req.headers,
+    //   body: webhookData
+    // });
 
     // Here you can add specific handlers for different event types
     switch (eventType.toLowerCase()) {
@@ -23,7 +23,7 @@ export const handleWebhook = async (req, res) => {
       // Add more cases as needed
       default:
         // Generic handling for unspecified event types
-        console.log('Unhandled event type:', eventType);
+        // console.log('Unhandled event type:', eventType);
     }
     
     // Send a success response back to the CRM

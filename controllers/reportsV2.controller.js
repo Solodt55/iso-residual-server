@@ -48,7 +48,7 @@ export default class ReportsV2Con {
       const files = req.files;
       const organizationID = req.params.organizationID;
 
-      console.log('req.body',req.body);
+      // console.log('req.body',req.body);
       
       let userID = null;
 
@@ -226,7 +226,7 @@ static updateReport = async (req, res, next) => {
   static buildAgentReport = async (req, res, next) => {
     try {
       const agentReport = await ReportsV2Coor.buildAgentReport(req.params.organizationID, req.params.agentID, req.body.monthYear);
-      console.log(JSON.stringify(agentReport, null, 2));
+      // console.log(JSON.stringify(agentReport, null, 2));
       if (!agentReport) {
         return res.status(404).json({ message: 'Agent report not found' });
       }

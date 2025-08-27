@@ -41,7 +41,7 @@ const buildAgentReportData = (agent, processorReports) => {
       );
     }
 
-    console.log('processorReports', JSON.stringify(processorReports, null, 2));
+    // console.log('processorReports', JSON.stringify(processorReports, null, 2));
 
 
     // Build the agent report data by filtering each processor's report data
@@ -121,12 +121,12 @@ const buildProcessorReportData = (report, agent) => {
             agent.agentSplit.includes("%")
           ) {
             agentSplit = parseFloat(agent.agentSplit) / 100;
-            console.log(
-              `Default case (percentage string): agentSplit parsed from "${agent.agentSplit}" → ${agentSplit}`
-            );
+            // console.log(
+            //   `Default case (percentage string): agentSplit parsed from "${agent.agentSplit}" → ${agentSplit}`
+            // );
           } else if (typeof agent.agentSplit === "number") {
             agentSplit = agent.agentSplit;
-            console.log(`Default case (number): agentSplit → ${agentSplit}`);
+            // console.log(`Default case (number): agentSplit → ${agentSplit}`);
           } else {
             console.warn(
               `Default case (invalid agentSplit): "${agent.agentSplit}" → fallback to 0.4`

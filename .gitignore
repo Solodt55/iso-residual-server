@@ -4,6 +4,7 @@
 
 #config files
 config/
+scripts/
 
 # Logs
 logs

@@ -5,7 +5,7 @@ export default class InvoicesCoordinator {
     static getInvoiceNum = async (organizationID) => {
         try {
             const result = await InvoicesModel.getInvoiceNum(organizationID);
-            console.log('result: ', result);
+            // console.log('result: ', result);
             return result;
         } catch (error) {
             throw new Error('Error getting invoice number from DB: ' + error.message);

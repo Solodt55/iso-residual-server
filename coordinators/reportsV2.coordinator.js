@@ -48,9 +48,34 @@ export default class ReportsV2Coor {
     }
   };
 
+  // Add merchant to agent's list of clients when they are included in a split getMerchantByID
+  static _backgroundAddOrRemoveMerchantToAgentsOnSplit = async (reportData) => {
+    try {
+      // console.log('orgID', reportData.organizationID);
+      const organizationID = reportData.organizationID;
+      await Promise.all(reportData.reportData.map(async merchant => {
+        const merchantId = merchant['Merchant Id'];
+        await AgentsModel.removeClientByMerchantIDFromSplit(merchantId);
+        if (merchant.splits?.length > 0) {
+          // console.log('merchant:', merchant);
+          const { splits } = merchant;
+          const { merchant: merchantInfo } = await AgentsModel.getMerchantByID(organizationID, merchantId);
+          // console.log('merchantInfo: ', merchantInfo);
+          await Promise.all(splits.map(async split => {
+            await AgentsModel.addMerchantToAgentFromSplit(split.name, merchantInfo);
+          }));
+        }
+      }));
+    } catch (error) {
+      throw new Error('Error adding merchant to agent: ' + error.message);
+    }
+  }
+
   // Update a report in the coordinator
   static updateReport = async (reportID, reportData) => {
     try {
+      this._backgroundAddOrRemoveMerchantToAgentsOnSplit(reportData);
+      // console.log(reportData);
       return await ReportsV2M.updateReport(reportID, reportData);
     } catch (error) {
       throw new Error('Error updating report: ' + error.message);

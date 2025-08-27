@@ -184,7 +184,7 @@ export default class ReportsV2M {
     try {
       // console.log('Model: Getting Processor Summary Report: ', organizationID, monthYear);
       const report = await db.dbReports().findOne({ organizationID, type: 'processor summary', month: monthYear });
-      console.log('Processor Summary Report:', report);
+      // console.log('Processor Summary Report:', report);
       return report;
     } catch (error) {
       throw new Error('Error getting processor summary report: ' + error.message);
@@ -209,7 +209,7 @@ export default class ReportsV2M {
 
   static getBankSummaryReport = async (organizationID, monthYear) => {
     try {
-      console.log('Model: Getting Bank Summary Report: ', organizationID, monthYear);
+      // console.log('Model: Getting Bank Summary Report: ', organizationID, monthYear);
       const report = await db.dbReports().findOne({ organizationID, type: 'bank summary', month: monthYear });
       // console.log('Bank Summary Report:', report);
       return report;
@@ -234,7 +234,7 @@ export default class ReportsV2M {
   // Get an agent summary report
   static getAgentSummaryReport = async (organizationID, monthYear) => {
     try {
-      console.log('Model: Getting Agent Summary Report: ', organizationID, monthYear);
+      // console.log('Model: Getting Agent Summary Report: ', organizationID, monthYear);
       const report = await db.dbReports().findOne({ organizationID, type: 'agent summary', month: monthYear });
       // console.log('Agent Summary Report:', report);
       return report;

@@ -23,7 +23,7 @@ export default class InvoicesController {
             const organizationID = req.params.organizationID;
             const newNumber = req.body.invoiceNum;
             // log invoice number
-            console.log('newNumber: ' + newNumber);
+            // console.log('newNumber: ' + newNumber);
             const result = await InvoicesCoordinator.updateInvoiceNum(organizationID, newNumber);
             if (result) {
                 res.status(200).json({message: 'Invoice number updated'});

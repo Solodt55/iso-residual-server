@@ -41,6 +41,7 @@ export default class AgentsModel {
 
     static getAgents = async (organizationID) => {
         try {
+            // console.log('Fetching agents for organization:', organizationID);
             const agents = await db.dbAgents().find({organizationID}, { projection: Constants.DEFAULT_PROJECTION }).toArray();
             if (agents.length === 0) {
                 return { message: 'No agents found' };
@@ -83,6 +84,8 @@ export default class AgentsModel {
 
     static getMerchantByID = async (organizationID, merchantID) => {
         try {
+            // console.log('Searching for merchantID:', merchantID, 'in organizationID:', organizationID);
+            console.log('for the love of god please say this is not running')
             const agent = await db.dbAgents().findOne(
                 { 
                     organizationID,
@@ -101,7 +104,7 @@ export default class AgentsModel {
                     }
                 }
             );
-            
+            // console.log('Agent found:', agent);
             if (!agent) {
                 return { message: `No merchant found with ID ${merchantID}` };
             }
@@ -127,7 +130,7 @@ export default class AgentsModel {
                 if (merchant.reps) transformedMerchant.reps = merchant.reps;
                 if (merchant.totalRepsSplitCount) transformedMerchant.totalRepsSplitCount = merchant.totalRepsSplitCount;
             }
-            
+            // console.log('Transformed Merchant:', transformedMerchant);
             return {
                 merchant: transformedMerchant,
                 agent: {
@@ -159,4 +162,67 @@ export default class AgentsModel {
             throw error;
         }
     };
-}
+
+    // Remove all instances of merchant matching the merchant id that was added via the split method
+    static removeClientByMerchantIDFromSplit = async (merchantID) => {
+        // console.log('Removing merchantID:', merchantID, 'from all agents');
+        // if (merchantID === '6588000002455723') console.log(merchantID);
+        try {
+            const result = await db.dbAgents().updateMany(
+                { 'clients.merchantID': merchantID },
+                { $pull: { clients: { merchantID, fromSplit: true } } }
+            );
+            if (!result.acknowledged) {
+                throw new Error('Model Error: Error removing client from agents');
+            }
+            // if (merchantID === '6588000002455723') console.log(merchantID, result);
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    // Add merchant to agent through split method
+    static addMerchantToAgentFromSplit = async (agentName, merchantInfo) => {
+        try {
+            // console.log(agentName)
+
+            merchantInfo.fromSplit = true;
+            const parts = agentName.trim().split(/\s+/);
+            const fName = parts[0];
+            const lName = parts.slice(1).join(" ");
+            // console.log(`first name:${fName}...`);
+            // console.log(`last name:${lName}...`);
+
+            const agent = await db.dbAgents().findOne(
+                { 
+                    fName: { $regex: new RegExp(`^${fName}\\s*$`) },
+                    lName, 
+                    'clients.merchantID': merchantInfo.merchantID 
+                }
+            );
+            if (agent) {
+                return { message: 'Merchant already exists for this agent' };
+            }
+
+            // Push if not found
+            const result = await db.dbAgents().updateOne(
+                { 
+                    fName: { $regex:  new RegExp(`^${fName}\\s*$`) },
+                    lName
+                },
+                { $push: { clients: merchantInfo } }
+            );
+            if (result.matchedCount === 0) {
+                return { message: 'Agent not found to add merchant' };
+            }
+            if (!result.acknowledged) {
+                throw new Error('Model Error: Error adding merchant to agent');
+            }
+
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    };
+};

@@ -6,20 +6,20 @@ export default class InvoicesModel {
 
     static getInvoiceNum = async (organizationID) => {
         try {
-            console.log('organizationID: ' + organizationID);
+            // console.log('organizationID: ' + organizationID);
              const result = await db.dbInvoices().findOne({organizationID});
-             console.log('result: ', result);
+            //  console.log('result: ', result);
              if (!result) {
                     const newInvoice = await db.dbInvoices().insertOne({
                         organizationID,
                         number: 1
                     });
-                    console.log('newInvoice: ' + newInvoice);
+                    // console.log('newInvoice: ' + newInvoice);
                     if (newInvoice.insertedId) {
                         return 1;
                     };
                 };
-                console.log('result.number: ', result.number);
+                // console.log('result.number: ', result.number);
                 return result;
         } catch (error) {
             console.error('Error getting invoice number from DB: ' + error.message);
