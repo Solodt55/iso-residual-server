@@ -51,9 +51,9 @@ export default class ReportsV2Coor {
   // Add merchant to agent's list of clients when they are included in a split getMerchantByID
   static _backgroundAddOrRemoveMerchantToAgentsOnSplit = async (reportData) => {
     try {
-      console.log('Where am I?');
+      // console.log('Where am I?');
       // console.log('orgID', reportData.organizationID);
-      console.log('reportData:', reportData);
+      // console.log('reportData:', reportData);
 
       const organizationID = reportData.organizationID;
       await Promise.all(reportData.reportData.map(async merchant => {
@@ -74,11 +74,11 @@ export default class ReportsV2Coor {
           await Promise.all(merchant.reportData.map(async m => {
             if (m?.splits) {
               const MID = m['Merchant Id'];
-              console.log('merchantId:', MID);
-              console.log('splits:', m.splits);
+              // console.log('merchantId:', MID);
+              // console.log('splits:', m.splits);
               const { merchant: merchantInfo } = await AgentsModel.getMerchantByID(organizationID, MID);
               m.splits?.length > 0 && await Promise.all(m.splits.map(async split => {
-                console.log(await AgentsModel.addMerchantToAgentFromSplit(split.name, merchantInfo, split.value));
+                await AgentsModel.addMerchantToAgentFromSplit(split.name, merchantInfo, split.value);
               }));
             }
           }));

@@ -191,8 +191,6 @@ export default class AgentsModel {
             const parts = agentName.trim().split(/\s+/);
             const fName = parts[0];
             const lName = parts.slice(1).join(" ");
-            // console.log(`first name:${fName}...`);
-            // console.log(`last name:${lName}...`);
 
             const agent = await db.dbAgents().findOne(
                 { 
