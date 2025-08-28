@@ -51,18 +51,36 @@ export default class ReportsV2Coor {
   // Add merchant to agent's list of clients when they are included in a split getMerchantByID
   static _backgroundAddOrRemoveMerchantToAgentsOnSplit = async (reportData) => {
     try {
+      console.log('Where am I?');
       // console.log('orgID', reportData.organizationID);
+      console.log('reportData:', reportData);
+
       const organizationID = reportData.organizationID;
       await Promise.all(reportData.reportData.map(async merchant => {
         const merchantId = merchant['Merchant Id'];
-        await AgentsModel.removeClientByMerchantIDFromSplit(merchantId);
-        if (merchant.splits?.length > 0) {
+        // console.log('ReportData:', merchant.reportData);
+        await merchantId ? AgentsModel.removeClientByMerchantIDFromSplit(merchantId) : Promise.all(merchant.reportData.map(async m => { AgentsModel.removeClientByMerchantIDFromSplit(m['Merchant Id']); }));
+        if (merchant.splits?.length > 0) { // add split from Processor report
           // console.log('merchant:', merchant);
           const { splits } = merchant;
           const { merchant: merchantInfo } = await AgentsModel.getMerchantByID(organizationID, merchantId);
           // console.log('merchantInfo: ', merchantInfo);
           await Promise.all(splits.map(async split => {
-            await AgentsModel.addMerchantToAgentFromSplit(split.name, merchantInfo);
+            // console.log('split value:', split.value);
+            // console.log('split:', split);
+            await AgentsModel.addMerchantToAgentFromSplit(split.name, merchantInfo, split.value);
+          }));
+        } else if (merchant.reportData) { // add split from agent report
+          await Promise.all(merchant.reportData.map(async m => {
+            if (m?.splits) {
+              const MID = m['Merchant Id'];
+              console.log('merchantId:', MID);
+              console.log('splits:', m.splits);
+              const { merchant: merchantInfo } = await AgentsModel.getMerchantByID(organizationID, MID);
+              m.splits?.length > 0 && await Promise.all(m.splits.map(async split => {
+                console.log(await AgentsModel.addMerchantToAgentFromSplit(split.name, merchantInfo, split.value));
+              }));
+            }
           }));
         }
       }));
@@ -74,6 +92,7 @@ export default class ReportsV2Coor {
   // Update a report in the coordinator
   static updateReport = async (reportID, reportData) => {
     try {
+      // console.log("Updating report:", reportData);
       this._backgroundAddOrRemoveMerchantToAgentsOnSplit(reportData);
       // console.log(reportData);
       return await ReportsV2M.updateReport(reportID, reportData);
@@ -648,6 +667,7 @@ export default class ReportsV2Coor {
       if (!processorReports || processorReports.length === 0) {
         throw new Error("No processor reports found for this month/year.");
       }
+      // console.log('am I here please?');
       // build report
       const agentReport = AgentReportUtil.buildAgentReport(
         organizationID,

@@ -85,7 +85,7 @@ export default class AgentsModel {
     static getMerchantByID = async (organizationID, merchantID) => {
         try {
             // console.log('Searching for merchantID:', merchantID, 'in organizationID:', organizationID);
-            console.log('for the love of god please say this is not running')
+            // console.log('for the love of god please say this is not running')
             const agent = await db.dbAgents().findOne(
                 { 
                     organizationID,
@@ -183,11 +183,11 @@ export default class AgentsModel {
     };
 
     // Add merchant to agent through split method
-    static addMerchantToAgentFromSplit = async (agentName, merchantInfo) => {
+    static addMerchantToAgentFromSplit = async (agentName, merchantInfo, precent) => {
         try {
             // console.log(agentName)
-
             merchantInfo.fromSplit = true;
+            merchantInfo.splitPercentage = precent;
             const parts = agentName.trim().split(/\s+/);
             const fName = parts[0];
             const lName = parts.slice(1).join(" ");

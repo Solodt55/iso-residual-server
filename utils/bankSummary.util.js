@@ -49,7 +49,7 @@ const buildBankSummaryReportData = (processorReports) => {
 
 const buildProcessorReportData = (report) => {
     try {
-        //console.log('Processing report for processor:', report.processor);
+        console.log('Processing report for processor:', report.processor);
         //console.log('First row of report data structure:', report.reportData[0]); // Log the first row to inspect its structure
         // Ensure the report data and bank  clients are valid
         if (!report || !Array.isArray(report.reportData)) {
