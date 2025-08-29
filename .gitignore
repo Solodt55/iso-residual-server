@@ -3,7 +3,7 @@
 *.ppk
 
 #config files
-config/
+# config/
 scripts/
 
 # Logs
