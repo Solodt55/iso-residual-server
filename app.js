@@ -3,6 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import config from 'config';
+import https from 'https';
+import http from 'http';
+import fs from 'fs';
 // import routes
 import AgentsRoute from './routes/agents.route.js';
 import ReportsV2Route from './routes/reportsV2.route.js';
@@ -23,6 +26,10 @@ dotenv.config();
 // setupe express
 const app = express()
 const port = 3003;
+const options = {
+  key: fs.readFileSync('./certs/key.pem'),
+  cert: fs.readFileSync('./certs/cert.pem')
+};
 
 // setup middleware
 app.use(express.json({ limit: '50mb' }));
@@ -43,6 +50,9 @@ app.use('/api/v2/webhooks', webhooksRouter);
 db.init(config.get('mongo'));
 
 // start server
-app.listen(port, () => {
+// app.listen(port, () => {
+//   console.log(`Server is running on port ${port}`);
+// })
+https.createServer(options, app).listen(port, () => {
   console.log(`Server is running on port ${port}`);
-})
+});
