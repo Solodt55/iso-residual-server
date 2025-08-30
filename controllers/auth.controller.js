@@ -3,6 +3,7 @@ import AuthCoordinator from '../coordinators/auth.coordinator.js';
 
 export const login = async (req, res) => {
     try {
+        console.log("am I here");
         const { username, password } = req.body;
         const user = await AuthCoordinator.loginUser(username, password);
         if (!user) {

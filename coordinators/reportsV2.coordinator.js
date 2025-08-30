@@ -63,8 +63,12 @@ export default class ReportsV2Coor {
         if (merchant.splits?.length > 0) { // add split from Processor report
           // console.log('merchant:', merchant);
           const { splits } = merchant;
-          const { merchant: merchantInfo } = await AgentsModel.getMerchantByID(organizationID, merchantId);
+          let { merchant: merchantInfo } = await AgentsModel.getMerchantByID(organizationID, merchantId);
+          // console.log('merchant:', merchant);
           // console.log('merchantInfo: ', merchantInfo);
+          // console.log('merchantId: ', merchantId);
+          merchantInfo = merchantInfo ? merchantInfo : { "merchantID": merchantId, "merchantName": merchant['Merchant Name'], "branchID": null, "partner": null, "partnerSplit": null };
+          // console.log('merchantInfo2: ', merchantInfo);
           await Promise.all(splits.map(async split => {
             // console.log('split value:', split.value);
             // console.log('split:', split);
@@ -76,7 +80,11 @@ export default class ReportsV2Coor {
               const MID = m['Merchant Id'];
               // console.log('merchantId:', MID);
               // console.log('splits:', m.splits);
-              const { merchant: merchantInfo } = await AgentsModel.getMerchantByID(organizationID, MID);
+              let { merchant: merchantInfo } = await AgentsModel.getMerchantByID(organizationID, MID);
+              merchantInfo = merchantInfo ? merchantInfo : { "merchantID": MID, "merchantName": m['Merchant Name'], "branchID": null, "partner": null, "partnerSplit": null };
+              // console.log('merchantId:', MID);
+              // console.log('splits:', m.splits);
+              // console.log('merchantInfo: ', merchantInfo);
               m.splits?.length > 0 && await Promise.all(m.splits.map(async split => {
                 await AgentsModel.addMerchantToAgentFromSplit(split.name, merchantInfo, split.value);
               }));
