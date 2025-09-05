@@ -101,7 +101,7 @@ export default class ReportsV2Coor {
   static updateReport = async (reportID, reportData) => {
     try {
       // console.log("Updating report:", reportData);
-      this._backgroundAddOrRemoveMerchantToAgentsOnSplit(reportData);
+      await this._backgroundAddOrRemoveMerchantToAgentsOnSplit(reportData);
       // console.log(reportData);
       return await ReportsV2M.updateReport(reportID, reportData);
     } catch (error) {

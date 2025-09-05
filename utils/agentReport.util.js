@@ -98,16 +98,45 @@ const buildProcessorReportData = (report, agent) => {
     const finalReportData = filteredReportData.map((row) => {
       // console.log('am I in finalReportData map')
       const client = clientMap.get(String(row["Merchant Id"])); // Use string comparison
-      // console.log("the client:", client);
+      console.log("the client:", client);
+      console.log("the row:", row);
       let finalReportRow, agentSplit;
       switch (client.partner) {
         case "SIB":
-          agentSplit = 0.6;
+          if (client.splitPercentage) {
+            agentSplit =  parseFloat(client.splitPercentage) / 100;
+          } else {
+            agentSplit = 0.6;
+          }
           break;
         case "HBS":
-          agentSplit = 0.4;
+          if (client.splitPercentage) {
+            agentSplit =  parseFloat(client.splitPercentage) / 100;
+          } else {
+            agentSplit = 0.4;
+          }
           break;
-        case "PharmaTrush":
+        case "PharmaTrust":
+          if (client.splitPercentage) {
+            agentSplit =  parseFloat(client.splitPercentage) / 100;
+          } else if (
+            typeof agent.agentSplit === "string" &&
+            agent.agentSplit.includes("%")
+          ) {
+            agentSplit = parseFloat(agent.agentSplit) / 100;
+            // console.log(
+            //   `Default case (percentage string): agentSplit parsed from "${agent.agentSplit}" → ${agentSplit}`
+            // );
+          } else if (typeof agent.agentSplit === "number") {
+            agentSplit = agent.agentSplit;
+            // console.log(`Default case (number): agentSplit → ${agentSplit}`);
+          } else {
+            console.warn(
+              `Default case (invalid agentSplit): "${agent.agentSplit}" → fallback to 0.4`
+            );
+            agentSplit = "0%";
+          }
+          break;
         case "Jonathan Mosley":
           agentSplit = 0.7;
           break;

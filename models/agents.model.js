@@ -172,6 +172,18 @@ export default class AgentsModel {
                 { 'clients.merchantID': merchantID },
                 { $pull: { clients: { merchantID, fromSplit: true } } }
             );
+            await db.dbAgents().updateMany(
+                { 'clients.merchantID': merchantID },
+                { $unset: { 'clients.$[elem].splitPercentage': "" } },
+                {
+                    arrayFilters: [
+                        { 
+                            "elem.merchantID": merchantID,
+                            "elem.splitPercentage": { $exists: true }
+                        }
+                    ]
+                }
+            );
             if (!result.acknowledged) {
                 throw new Error('Model Error: Error removing client from agents');
             }
