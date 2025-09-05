@@ -211,9 +211,25 @@ export default class AgentsModel {
                     'clients.merchantID': merchantInfo.merchantID 
                 }
             );
+
             if (agent) {
-                return { message: 'Merchant already exists for this agent' };
+                // Agent and merchant exist, update only splitPercentage for this merchant
+                const updateResult = await db.dbAgents().updateOne(
+                    { 
+                        fName: { $regex: new RegExp(`^${fName}\\s*$`) },
+                        lName,
+                        'clients.merchantID': merchantInfo.merchantID
+                    },
+                    { $set: { 'clients.$[elem].splitPercentage': precent } },
+                    {
+                        arrayFilters: [
+                            { "elem.merchantID": merchantInfo.merchantID }
+                        ]
+                    }
+                );
+                return { message: 'splitPercentage updated for existing merchant', result: updateResult };
             }
+
 
             // Push if not found
             const result = await db.dbAgents().updateOne(
