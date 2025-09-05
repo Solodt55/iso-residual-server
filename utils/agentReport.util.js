@@ -138,10 +138,18 @@ const buildProcessorReportData = (report, agent) => {
           }
           break;
         case "Jonathan Mosley":
-          agentSplit = 0.7;
+          if (client.splitPercentage) {
+            agentSplit =  parseFloat(client.splitPercentage) / 100;
+          } else {
+            agentSplit = 0.7;
+          }
           break;
         case "CasTech":
-          agentSplit = 0.5;
+          if (client.splitPercentage) {
+            agentSplit =  parseFloat(client.splitPercentage) / 100;
+          } else {
+            agentSplit = 0.5;
+          }
           break;
         default:
           // agentSplit = agent.agentSplit;
