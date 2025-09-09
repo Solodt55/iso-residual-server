@@ -197,9 +197,13 @@ export default class AgentsModel {
     // Add merchant to agent through split method
     static addMerchantToAgentFromSplit = async (agentName, merchantInfo, precent) => {
         try {
-            // console.log(agentName)
-            merchantInfo.fromSplit = true;
-            merchantInfo.splitPercentage = precent;
+            // Create a fresh copy of the merchantInfo object for this agent
+            const merchantCopy = JSON.parse(JSON.stringify(merchantInfo));
+            
+            // Set properties on the copy, not the original
+            merchantCopy.fromSplit = true;
+            merchantCopy.splitPercentage = precent;
+
             const parts = agentName.trim().split(/\s+/);
             const fName = parts[0];
             const lName = parts.slice(1).join(" ");
@@ -208,26 +212,31 @@ export default class AgentsModel {
                 { 
                     fName: { $regex: new RegExp(`^${fName}\\s*$`) },
                     lName, 
-                    'clients.merchantID': merchantInfo.merchantID 
+                    'clients.merchantID': merchantCopy.merchantID 
                 }
             );
 
             if (agent) {
-                // Agent and merchant exist, update only splitPercentage for this merchant
+                // console.log(`Agent with name ${fName} ${lName} already has merchant with ID ${merchantCopy.merchantID}. Updating splitPercentage if not present.`);
+                // Agent and merchant exist, update splitPercentage ONLY if it does not already exist
                 const updateResult = await db.dbAgents().updateOne(
-                    { 
+                    {
                         fName: { $regex: new RegExp(`^${fName}\\s*$`) },
                         lName,
-                        'clients.merchantID': merchantInfo.merchantID
+                        'clients.merchantID': merchantCopy.merchantID
                     },
                     { $set: { 'clients.$[elem].splitPercentage': precent } },
                     {
                         arrayFilters: [
-                            { "elem.merchantID": merchantInfo.merchantID }
+                            { "elem.merchantID": merchantCopy.merchantID, "elem.splitPercentage": { "$exists": false } }
                         ]
                     }
                 );
-                return { message: 'splitPercentage updated for existing merchant', result: updateResult };
+                if (updateResult.modifiedCount > 0) {
+                    // console.log(`Successfully updated splitPercentage for merchantID ${merchantCopy.merchantID} under agent ${fName} ${lName}`);
+                    return { message: 'splitPercentage set for existing merchant', result: updateResult };
+                }
+                // If no update was made, fall through to push logic
             }
 
 
@@ -237,7 +246,7 @@ export default class AgentsModel {
                     fName: { $regex:  new RegExp(`^${fName}\\s*$`) },
                     lName
                 },
-                { $push: { clients: merchantInfo } }
+                { $push: { clients: merchantCopy } }
             );
             if (result.matchedCount === 0) {
                 return { message: 'Agent not found to add merchant' };
@@ -245,7 +254,7 @@ export default class AgentsModel {
             if (!result.acknowledged) {
                 throw new Error('Model Error: Error adding merchant to agent');
             }
-
+            // console.log(fName, ' added merchant:', merchantCopy);
             return result;
         } catch (error) {
             throw error;

@@ -98,9 +98,10 @@ const buildProcessorReportData = (report, agent) => {
     const finalReportData = filteredReportData.map((row) => {
       // console.log('am I in finalReportData map')
       const client = clientMap.get(String(row["Merchant Id"])); // Use string comparison
-      console.log("the client:", client);
-      console.log("the row:", row);
+      String(client.merchantID) === '11499' ? console.log("the client:", client) : null;
+      console.log(String(client.merchantID));
       let finalReportRow, agentSplit;
+      
       switch (client.partner) {
         case "SIB":
           if (client.splitPercentage) {

@@ -120,6 +120,7 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
 
             switch (processorType) {
                 case 'type1':
+                    console.log('type1');
                     procRow = new Type1Row(
                         merchantID,  // trim to handle spaces
                         merchantName,
@@ -136,6 +137,7 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
                     );
                     break;
                 case 'type2':
+                    console.log('type2');
                     procRow = new Type2Row(
                         merchantID,        // Correctly named
                         merchantName,      // Correctly named
@@ -151,6 +153,7 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
                     );
                     break;
                 case 'type3':
+                    console.log('type3');
                     procRow = new Type3Row(
                         merchantID,
                         merchantName,
@@ -164,6 +167,7 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
                     );
                     break;
                 case 'type4':
+                    console.log('type4');
                     if (processor === 'Rectangle Health') {
                         // Get DBA from dbaMap
                         if (dbaMap[merchantName]) {
@@ -197,6 +201,7 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
                     };
                     break;
                 case 'type5':
+                    console.log('type5');
                     // For PayBright, read '%' from file but use Branch ID from agents data like other processors
                     const bankSplitFromFile =  0.35; //row['%'] ? parseFloat(row['%'].replace('%', '')) / 100 : 0.35;
 

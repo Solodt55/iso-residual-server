@@ -45,6 +45,7 @@ export default class ReportsV2Con {
     // bulk create reports
   static createReports = async (req, res, next) => {
     try {
+      console.log('I am creating a report right?');
       const files = req.files;
       const organizationID = req.params.organizationID;
 
@@ -76,10 +77,12 @@ export default class ReportsV2Con {
 
         let promise;
         if (processor === 'accept.blue' || processor === 'PAAY') {
+          console.log('am I making a arReport')
           // Handle Type 1 processors (accept.blue, PAAY)
           promise = await ReportsV2Coor.createArReport(organizationID, processor, fileBuffer, mimetype, monthYear, userID);
           reportPromises.push(promise);
         } else {
+          console.log('am I making a processorReport');
           promise = await ReportsV2Coor.createProcessorReport(organizationID, processor, fileBuffer, mimetype, monthYear, userID);
           reportPromises.push(promise);
         }

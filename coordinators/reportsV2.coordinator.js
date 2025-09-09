@@ -86,6 +86,7 @@ export default class ReportsV2Coor {
               // console.log('splits:', m.splits);
               // console.log('merchantInfo: ', merchantInfo);
               m.splits?.length > 0 && await Promise.all(m.splits.map(async split => {
+                // console.log('split value:', split.value, 'split name:', split.name, 'merchantInfo:', merchantInfo);
                 await AgentsModel.addMerchantToAgentFromSplit(split.name, merchantInfo, split.value);
               }));
             }

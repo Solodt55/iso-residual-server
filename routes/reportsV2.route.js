@@ -25,7 +25,7 @@ const upload = multer({
 });
 
 reportR.use((req, res, next) => {
-  console.log(`Request received for path: ${req.path}`);
+  console.log(`reportsV2.route.js: Request received for path: ${req.path}`);
   next();
 });
 
