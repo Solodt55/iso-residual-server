@@ -538,10 +538,18 @@ export default class ReportsV2Coor {
     userID
   ) => {
     try {
+      console.log(`[Coordinator] Starting to create processor report for ${processor}`);
+      console.log(`[Coordinator] File buffer length: ${fileBuffer.length} bytes`);
+      
       // Parse the file
+      console.log(`[Coordinator] Parsing file for ${processor} with mimetype ${mimetype}`);
+      
       const csvData = await parseFile(fileBuffer, mimetype, processor);
-
-      // console.log("csvData", csvData);
+      console.log(`[Coordinator] File parsed for ${processor}. Data rows: ${csvData ? csvData.length : 0}`);
+      
+      if (processor === 'PayBright' && csvData && csvData.length > 0) {
+        console.log(`[Coordinator] PayBright sample data:`, csvData[0]);
+      }
 
       const agents = await AgentsModel.getAgents(organizationID);
       if (!csvData || csvData.length === 0) {
@@ -549,6 +557,7 @@ export default class ReportsV2Coor {
       }
 
       // Enrich CSV data with merchant splits
+      console.log(`[Coordinator] Enriching ${csvData.length} rows with merchant splits`);
       const enrichedCSVData = await ReportsV2Coor.enrichCSVDataWithSplits(
         csvData,
         organizationID
@@ -557,6 +566,7 @@ export default class ReportsV2Coor {
       // console.log("enrichedCSVData", enrichedCSVData);
 
       // Check if a report already exists for this organization, processor, type, and month/year
+      console.log(`[Coordinator] Checking if ${processor} report already exists for ${monthYear}`);
       let reportExists;
       // Check if building Line Item Deductions report
       if (processor === "Rectangle Health" || processor === "Hyfin") {

@@ -21,8 +21,33 @@ export const parseFile = async (buffer, mimetype, processor) => {
     // Process CSV files
     if (mimetype === 'text/csv' || mimetype === 'application/csv') {
       //console.log(`Processing CSV file with type: ${type}`);
+      
+      // Special handling for specific processors
       if (processor === 'Hyfin') {
         return await delayedCsvParser(buffer, 5); // Use startRow = 5 for Hyfin
+      } else if (processor === 'PayBright') {
+        console.log('Using special parser for PayBright');
+        // Try multiple start rows to find the right headers
+        for (let startRow = 1; startRow <= 10; startRow++) {
+          try {
+            const data = await delayedCsvParser(buffer, startRow);
+            // Check if we got meaningful data by checking first row for expected fields
+            const firstRow = data[0] || {};
+            console.log(`PayBright parsing with startRow=${startRow}, sample keys:`, Object.keys(firstRow));
+            
+            // If we have some meaningful data fields, use this result
+            if (Object.keys(firstRow).length > 3 && 
+               (firstRow['Merchant ID'] || firstRow['DBA Name'] || firstRow['Merchant'] || 
+                firstRow['MID'] || firstRow['MERCHANT NAME'])) {
+              console.log('Found valid PayBright data structure with headers at row', startRow);
+              return data;
+            }
+          } catch (err) {
+            console.log(`PayBright parsing at startRow=${startRow} failed:`, err.message);
+          }
+        }
+        // If we got here, we couldn't find a valid structure - try the default parser
+        console.log('Falling back to default CSV parser for PayBright');
       }
 
       switch (type) {
@@ -102,7 +127,13 @@ const parseCSV = (buffer) => {
         results.push(data);
       })
       .on('end', () => {
-        //console.log('CSV parsing completed.');
+        console.log('CSV parsing completed. Rows:', results.length);
+        if (results.length > 0) {
+          console.log('Sample row keys:', Object.keys(results[0]));
+          console.log('Sample row values:', Object.values(results[0]));
+        } else {
+          console.warn('No data rows parsed from CSV');
+        }
         resolve(results);
       })
       .on('error', (err) => {

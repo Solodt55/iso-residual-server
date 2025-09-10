@@ -45,11 +45,11 @@ export default class ReportsV2Con {
     // bulk create reports
   static createReports = async (req, res, next) => {
     try {
-      console.log('I am creating a report right?');
+      console.log('Creating reports - starting process');
       const files = req.files;
       const organizationID = req.params.organizationID;
-
-      // console.log('req.body',req.body);
+      
+      console.log('Files received:', Object.keys(files));
       
       let userID = null;
 
@@ -63,30 +63,60 @@ export default class ReportsV2Con {
       const reportPromises = [];
       const processors = Object.keys(files);
 
+      // Special handling for PayBright
+      if (processors.includes('PayBright') && processors.length === 1) {
+        console.log('Processing PayBright report specifically');
+        console.log('PayBright file size:', files['PayBright'][0].size);
+        console.log('PayBright mimetype:', files['PayBright'][0].mimetype);
+      }
+
       for (const processor of processors) {
         const fileBuffer = files[processor][0].buffer;
+        const fileSize = files[processor][0].size;
         const mimetype = files[processor][0].mimetype;
         const monthYear = `${req.body.month} ${req.body.year}`;
 
+        console.log(`Processing file for ${processor}:`, {
+          fileSize,
+          mimetype,
+          monthYear
+        });
+
         // Check if the file is in a valid format
         if (!['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(mimetype)) {
-          return res.status(400).json({ message: 'Invalid file format' });
+          return res.status(400).json({ message: `Invalid file format for ${processor}` });
         }
 
-        //const processorType = processorTypeMap[processor];
+        // Check if file has content
+        if (fileSize === 0) {
+          return res.status(400).json({ message: `Empty file uploaded for ${processor}` });
+        }
 
-        let promise;
-        if (processor === 'accept.blue' || processor === 'PAAY') {
-          console.log('am I making a arReport')
-          // Handle Type 1 processors (accept.blue, PAAY)
-          promise = await ReportsV2Coor.createArReport(organizationID, processor, fileBuffer, mimetype, monthYear, userID);
+        try {
+          let promise;
+          if (processor === 'accept.blue' || processor === 'PAAY') {
+            console.log(`Creating AR report for ${processor}`);
+            // Handle Type 1 processors (accept.blue, PAAY)
+            promise = await ReportsV2Coor.createArReport(organizationID, processor, fileBuffer, mimetype, monthYear, userID);
+          } else {
+            console.log(`Creating processor report for ${processor}`);
+            promise = await ReportsV2Coor.createProcessorReport(organizationID, processor, fileBuffer, mimetype, monthYear, userID);
+          }
           reportPromises.push(promise);
-        } else {
-          console.log('am I making a processorReport');
-          promise = await ReportsV2Coor.createProcessorReport(organizationID, processor, fileBuffer, mimetype, monthYear, userID);
-          reportPromises.push(promise);
+        } catch (processorError) {
+          console.error(`Error processing ${processor} report:`, processorError);
+          // Check if this is a duplicate report error
+          if (processorError.message && processorError.message.includes('duplicate key')) {
+            return res.status(409).json({ 
+              message: `A report for ${processor} in ${req.body.month} ${req.body.year} already exists. Please delete it first.`,
+              processor
+            });
+          } else {
+            throw processorError; // Re-throw to be caught by outer catch
+          }
         }
       }
+      
       const results = await Promise.all(reportPromises);
       const reports = [];
       for (const result of results) {
@@ -95,12 +125,21 @@ export default class ReportsV2Con {
           reports.push(result[1]);
         }
       }
+      
       if (reports.length === 0) {
         return res.status(400).json({ message: 'Reports not created' });
       } else {
         return res.status(200).json({ message: 'Reports created successfully', reports });
       }
     } catch (error) {
+      console.error('Error creating reports:', error);
+      if (error.name === 'MongoServerError' && error.code === 11000) {
+        // MongoDB duplicate key error
+        return res.status(409).json({ 
+          message: 'A report for this month and year already exists. Please delete it first.',
+          error: error.message 
+        });
+      }
       next(error);
     }
   };

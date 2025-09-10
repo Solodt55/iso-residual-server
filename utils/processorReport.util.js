@@ -203,7 +203,7 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
                 case 'type5':
                     console.log('type5');
                     // For PayBright, read '%' from file but use Branch ID from agents data like other processors
-                    const bankSplitFromFile =  0.35; //row['%'] ? parseFloat(row['%'].replace('%', '')) / 100 : 0.35;
+                    const bankSplitFromFile = row['%'] ? parseFloat(row['%']) / 100 : 0.35;
 
                     procRow = new Type5Row(
                         merchantID,  // trim to handle spaces
