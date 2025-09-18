@@ -6,6 +6,7 @@ import Type5Row from "../classes/type5Row.class.js";
 import Report from "../classes/report.class.js";
 import processorTypeMap from "../lib/typeMap.lib.js";
 import ReportsV2M from "../models/reportsV2.model.js";
+import AgentsModel from "../models/agents.model.js";
 import { db } from "../lib/database.lib.js";
 
 export default class ProcessorReportUtil {
@@ -69,7 +70,7 @@ export default class ProcessorReportUtil {
 
 const buildProcRows = async (processor, csvData, branchIDMap, organizationID) => {
     try {
-        const procRowsArray = [];
+        
         // get processor type
         let lidReports, dbaMap;
         const processorType = processorTypeMap[processor];
@@ -84,152 +85,201 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
                 });
             });
         };
-        csvData.forEach(row => {
-            let procRow, bankSplit = 0, branchID, needsAudit;
+        
+        console.log(`[BuildProcRows] Starting to process ${csvData.length} rows for processor: ${processor}`);
+        console.log(`[BuildProcRows] Processor type: ${processorType}`);
+        console.log(`[BuildProcRows] Organization ID: ${organizationID}`);
+        
+        try {
+            const procRowsArray = await Promise.all(
+                csvData.map(async (row, index) => {
+                    try {
+                        console.log(`\n[BuildProcRows] Processing row ${index + 1}/${csvData.length}`);
+                        let procRow, bankSplit = 0, branchID, needsAudit;
 
-            // Normalize Merchant ID
-            let merchantID = row['Merchant ID'] || row['Merchant Id'] || row['MID'] || row['Client']
-                ? String(row['Merchant ID'] || row['Merchant Id'] || row['MID'] || row['Client'])
-                    .trim() // Remove surrounding whitespace
-                    .replace(/'/g, '') // Remove single quotes
-                : null;
+                        // Normalize Merchant ID
+                        let merchantID = row['Merchant ID'] || row['Merchant Id'] || row['MID'] || row['Client']
+                            ? String(row['Merchant ID'] || row['Merchant Id'] || row['MID'] || row['Client'])
+                                .trim() // Remove surrounding whitespace
+                                .replace(/'/g, '') // Remove single quotes
+                            : null;
 
-            // Normalize Merchant ID
-            const merchantName = row['Merchant'] || row['Merchant Name'] || row['Dba'] || row['Name']
-                ? String(row['Merchant'] || row['Merchant Name'] || row['Dba'] || row['Name']).trim()
-                : null;
+                        // Normalize Merchant ID
+                        const merchantName = row['Merchant'] || row['Merchant Name'] || row['Dba'] || row['Name']
+                            ? String(row['Merchant'] || row['Merchant Name'] || row['Dba'] || row['Name']).trim()
+                            : null;
 
-            if (!merchantID || merchantName === 'CLIENT LEVEL EXPENSE') {
-                return; // Skip invalid or unnecessary rows
-            };
+                        console.log(`[BuildProcRows] Row ${index + 1} - Merchant ID: ${merchantID}, Merchant Name: ${merchantName}`);
 
-            // Determine if Merchant ID exists in branchIDMap
-            needsAudit = !branchIDMap.hasOwnProperty(merchantID);
-
-            // Assign default values for missing BranchID
-            if (!branchIDMap[merchantID] || !branchIDMap[merchantID].branchID) {
-                branchID = '';
-                bankSplit = 0;
-            } else {
-                branchID = branchIDMap[merchantID].branchID;
-                bankSplit = 0.35;
-            };
-
-            // Get splits from the row if they exist
-            const splits = row.splits || [];
-
-            switch (processorType) {
-                case 'type1':
-                    console.log('type1');
-                    procRow = new Type1Row(
-                        merchantID,  // trim to handle spaces
-                        merchantName,
-                        row['Transactions'],
-                        row['Sales Amount'],
-                        row['Income'],
-                        row['Expenses'],
-                        row['Net'],
-                        row['BPS'],
-                        bankSplit,
-                        branchID, // Ensure branchIDMap is correctly mapped
-                        needsAudit,
-                        splits
-                    );
-                    break;
-                case 'type2':
-                    console.log('type2');
-                    procRow = new Type2Row(
-                        merchantID,        // Correctly named
-                        merchantName,      // Correctly named
-                        row['Payout Amount'],      // Updated to match parsed data
-                        row['Volume'],             // Correctly named
-                        row['Sales'],              // Correctly named
-                        row['Refunds'],            // Correctly named
-                        row['Reject Amount'],      // Correctly named
-                        bankSplit,
-                        branchID,  // Mapping the correct Merchant ID to branchID
-                        needsAudit,
-                        splits
-                    );
-                    break;
-                case 'type3':
-                    console.log('type3');
-                    procRow = new Type3Row(
-                        merchantID,
-                        merchantName,
-                        row['Agent Residual'],
-                        row['Sale Amount'],
-                        row['Sale Count'],
-                        bankSplit,
-                        branchID,
-                        needsAudit,
-                        splits
-                    );
-                    break;
-                case 'type4':
-                    console.log('type4');
-                    if (processor === 'Rectangle Health') {
-                        // Get DBA from dbaMap
-                        if (dbaMap[merchantName]) {
-                            merchantID = dbaMap[merchantName];
-                            needsAudit = false;
+                        if (!merchantID || merchantName === 'CLIENT LEVEL EXPENSE') {
+                            console.log(`[BuildProcRows] Row ${index + 1} - SKIPPING: Invalid merchant ID or CLIENT LEVEL EXPENSE`);
+                            return null; // Skip invalid or unnecessary rows
                         };
-                        procRow = new Type4Row(
-                            merchantID,  // trim to handle spaces
-                            merchantName,
-                            row['Billing Amount'],
-                            bankSplit,
-                            branchID,
-                            needsAudit,
-                            splits
-                        );
-                    } else {
-                        if (merchantID === 'Totals') {
-                            console.log('Row is empty');
-                            return;
+
+                        // Determine if Merchant ID exists in branchIDMap
+                        needsAudit = !branchIDMap.hasOwnProperty(merchantID);
+                        console.log(`[BuildProcRows] Row ${index + 1} - Needs audit: ${needsAudit}`);
+
+                        // Assign default values for missing BranchID
+                        if (!branchIDMap[merchantID] || !branchIDMap[merchantID].branchID) {
+                            branchID = '';
+                            bankSplit = 0;
+                            console.log(`[BuildProcRows] Row ${index + 1} - No branch mapping found, using defaults`);
+                        } else {
+                            branchID = branchIDMap[merchantID].branchID;
+                            bankSplit = 0.35;
+                            console.log(`[BuildProcRows] Row ${index + 1} - Found branch mapping: ${branchID}, bankSplit: ${bankSplit}`);
+                        };
+
+                        // Get splits from the row if they exist
+                        console.log(`[BuildProcRows] Row ${index + 1} - Fetching agent splits for merchant: ${merchantID}`);
+                        try {
+                            const splits = await AgentsModel.getAgentsMerchantSplitsByMerchantID(organizationID, merchantID) || [];
+                            console.log(`[BuildProcRows] Row ${index + 1} - Found ${splits.length} agent splits:`, splits);
+
+                            console.log(`[BuildProcRows] Row ${index + 1} - Processing as ${processorType}`);
+                            
+                            switch (processorType) {
+                                case 'type1':
+                                    console.log(`[BuildProcRows] Row ${index + 1} - Creating Type1Row`);
+                                    procRow = new Type1Row(
+                                        merchantID,  // trim to handle spaces
+                                        merchantName,
+                                        row['Transactions'],
+                                        row['Sales Amount'],
+                                        row['Income'],
+                                        row['Expenses'],
+                                        row['Net'],
+                                        row['BPS'],
+                                        bankSplit,
+                                        branchID, // Ensure branchIDMap is correctly mapped
+                                        needsAudit,
+                                        splits
+                                    );
+                                    break;
+                                case 'type2':
+                                    console.log(`[BuildProcRows] Row ${index + 1} - Creating Type2Row`);
+                                    procRow = new Type2Row(
+                                        merchantID,        // Correctly named
+                                        merchantName,      // Correctly named
+                                        row['Payout Amount'],      // Updated to match parsed data
+                                        row['Volume'],             // Correctly named
+                                        row['Sales'],              // Correctly named
+                                        row['Refunds'],            // Correctly named
+                                        row['Reject Amount'],      // Correctly named
+                                        bankSplit,
+                                        branchID,  // Mapping the correct Merchant ID to branchID
+                                        needsAudit,
+                                        splits
+                                    );
+                                    break;
+                                case 'type3':
+                                    console.log(`[BuildProcRows] Row ${index + 1} - Creating Type3Row`);
+                                    procRow = new Type3Row(
+                                        merchantID,
+                                        merchantName,
+                                        row['Agent Residual'],
+                                        row['Sale Amount'],
+                                        row['Sale Count'],
+                                        bankSplit,
+                                        branchID,
+                                        needsAudit,
+                                        splits
+                                    );
+                                    break;
+                                case 'type4':
+                                    console.log(`[BuildProcRows] Row ${index + 1} - Creating Type4Row`);
+                                    if (processor === 'Rectangle Health') {
+                                        // Get DBA from dbaMap
+                                        if (dbaMap[merchantName]) {
+                                            merchantID = dbaMap[merchantName];
+                                            needsAudit = false;
+                                            console.log(`[BuildProcRows] Row ${index + 1} - Rectangle Health: Updated merchantID from dbaMap: ${merchantID}`);
+                                        };
+                                        procRow = new Type4Row(
+                                            merchantID,  // trim to handle spaces
+                                            merchantName,
+                                            row['Billing Amount'],
+                                            bankSplit,
+                                            branchID,
+                                            needsAudit,
+                                            splits
+                                        );
+                                    } else {
+                                        if (merchantID === 'Totals') {
+                                            console.log(`[BuildProcRows] Row ${index + 1} - SKIPPING: Totals row`);
+                                            return null;
+                                        }
+
+                                        procRow = new Type4Row(
+                                            merchantID,
+                                            merchantName,
+                                            row['TOTAL FEES'],
+                                            bankSplit,
+                                            branchID,
+                                            needsAudit,
+                                            splits
+                                        );
+                                    };
+                                    break;
+                                case 'type5':
+                                    console.log(`[BuildProcRows] Row ${index + 1} - Creating Type5Row (PayBright)`);
+                                    // For PayBright, read '%' from file and calculate Agent Net
+                                    const bankSplitFromFile = row['%'] ? parseFloat(row['%']) / 100 : 0.35;
+                                    console.log(`[BuildProcRows] Row ${index + 1} - PayBright bankSplit from file: ${row['%']} -> ${bankSplitFromFile}`);
+                                    
+                                    // Calculate Agent Net by multiplying Net by the percentage
+                                    const netValue = parseFloat(row['Net']) || 0;
+                                    const calculatedAgentNet = netValue * bankSplitFromFile;
+                                    console.log(`[BuildProcRows] Row ${index + 1} - PayBright calculation: ${netValue} * ${bankSplitFromFile} = ${calculatedAgentNet}`);
+
+                                    procRow = new Type5Row(
+                                        merchantID,  // trim to handle spaces
+                                        merchantName,
+                                        row['Transactions'],
+                                        row['Sales Amount'],
+                                        row['Income'],
+                                        row['Expenses'],
+                                        calculatedAgentNet, // Use calculated Agent Net instead of raw Net
+                                        row['BPS'],
+                                        bankSplitFromFile, // Use '%' from file
+                                        branchID, // Use Branch ID from agents data like other processors
+                                        needsAudit,
+                                        splits
+                                    );
+                                    break;
+                                default:
+                                    console.log(`[BuildProcRows] Row ${index + 1} - ERROR: Unknown processor type: ${processorType}`);
+                                    throw new Error('Processor type not found');
+                            };
+                            
+                            console.log(`[BuildProcRows] Row ${index + 1} - Successfully created procRow for ${merchantName}`);
+                            return procRow;
+                        } catch (splitsError) {
+                            console.error(`[BuildProcRows] Row ${index + 1} - Error fetching splits or creating row:`, splitsError);
+                            console.error(`[BuildProcRows] Row ${index + 1} - Merchant ID: ${merchantID}, Organization ID: ${organizationID}`);
+                            // Return null instead of throwing to prevent Promise.all from failing
+                            return null;
                         }
-
-                        procRow = new Type4Row(
-                            merchantID,
-                            merchantName,
-                            row['TOTAL FEES'],
-                            bankSplit,
-                            branchID,
-                            needsAudit,
-                            splits
-                        );
-                    };
-                    break;
-                case 'type5':
-                    console.log('type5');
-                    // For PayBright, read '%' from file and calculate Agent Net
-                    const bankSplitFromFile = row['%'] ? parseFloat(row['%']) / 100 : 0.35;
-                    
-                    // Calculate Agent Net by multiplying Net by the percentage
-                    const netValue = parseFloat(row['Net']) || 0;
-                    const calculatedAgentNet = netValue * bankSplitFromFile;
-
-                    procRow = new Type5Row(
-                        merchantID,  // trim to handle spaces
-                        merchantName,
-                        row['Transactions'],
-                        row['Sales Amount'],
-                        row['Income'],
-                        row['Expenses'],
-                        calculatedAgentNet, // Use calculated Agent Net instead of raw Net
-                        row['BPS'],
-                        bankSplitFromFile, // Use '%' from file
-                        branchID, // Use Branch ID from agents data like other processors
-                        needsAudit,
-                        splits
-                    );
-                    break;
-                default:
-                    throw new Error('Processor type not found');
-            };
-            procRowsArray.push(procRow);
-        });
-        return procRowsArray;
+                    } catch (rowError) {
+                        console.error(`[BuildProcRows] Row ${index + 1} - Error processing row:`, rowError);
+                        console.error(`[BuildProcRows] Row ${index + 1} - Row data:`, row);
+                        // Return null instead of throwing to prevent Promise.all from failing
+                        return null;
+                    }
+                })
+            );            console.log(`[BuildProcRows] Promise.all completed. Processing ${procRowsArray.length} results`);
+            
+            // Filter out any null or undefined rows (e.g., skipped rows). Since we are using map instead of forEach now
+            console.log('about to return valid rows');
+            const validRows = procRowsArray.filter(row => row !== null && row !== undefined);
+            console.log(`valid rows length: ${validRows.length}`);
+            console.log(`valid rows sample:`, validRows.slice(0, 2));
+            return validRows;
+        } catch (promiseError) {
+            console.error('[BuildProcRows] Error in Promise.all:', promiseError);
+            throw promiseError;
+        }
     } catch (error) {
         throw new Error('Error building processor rows: ' + error.message);
     }

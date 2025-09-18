@@ -163,6 +163,50 @@ export default class AgentsModel {
         }
     };
 
+    // Get all agents that have a split for a specific merchant if the merchant was added via the split method return array of agents with their split percentages
+    static getAgentsMerchantSplitsByMerchantID = async (organizationID, merchantID) => {
+        try {
+            const agents = await db.dbAgents().find(
+                { 
+                    organizationID,
+                    'clients.merchantID': merchantID,
+                    'clients.fromSplit': true
+                },
+                { 
+                    projection: {
+                        fName: 1,
+                        lName: 1,
+                        clients: {
+                            $elemMatch: { 
+                                merchantID: merchantID,
+                                fromSplit: true
+                            }
+                        }
+                    }
+                }
+            ).toArray();
+
+            if (!agents || agents.length === 0) {
+                return [];
+            }
+
+            // Transform the data to the required format
+            const result = agents.map(agent => {
+                const merchant = agent.clients[0]; 
+                
+                return {
+                    type: "rep",
+                    name: `${agent.fName} ${agent.lName}`,
+                    value: merchant.splitPercentage
+                };
+            });
+
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    };
+
     // Remove all instances of merchant matching the merchant id that was added via the split method
     static removeClientByMerchantIDFromSplit = async (merchantID) => {
         // console.log('Removing merchantID:', merchantID, 'from all agents');
