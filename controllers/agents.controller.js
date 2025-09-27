@@ -83,11 +83,19 @@ export const reauditAgents = async (req, res, next) => {
 
 export const getAgent = async (req, res, next) => {
     try {
-        const result = await AgentsCoordinator.getAgent(req.params.organizationID, req.params.agentID);
-        if (result.message) {
-            return res.status(404).send(result);
+        // Check if user is admin or has restricted access
+        if (req.user && !req.user.isAdmin && req.userAgent) {
+            // Non-admin user: return only their own agent data
+            console.log(`Non-admin user ${req.user.username} accessing specific agent - returning their agent data`);
+            return res.status(200).send(req.userAgent);
         } else {
-            return res.status(200).send(result);
+            // Admin user: get any agent
+            const result = await AgentsCoordinator.getAgent(req.params.organizationID, req.params.agentID);
+            if (result.message) {
+                return res.status(404).send(result);
+            } else {
+                return res.status(200).send(result);
+            }
         }
     } catch (error) {
         next(error);
@@ -96,11 +104,19 @@ export const getAgent = async (req, res, next) => {
 
 export const getAgents = async (req, res, next) => {
     try {
-        const result = await AgentsCoordinator.getAgents(req.params.organizationID);
-        if (result.message) {
-            return res.status(404).send(result);
+        // Check if user is admin or has restricted access
+        if (req.user && !req.user.isAdmin && req.userAgent) {
+            // Non-admin user: return only their own agent data
+            console.log(`Non-admin user ${req.user.username} accessing agents - returning only their agent data`);
+            return res.status(200).send([req.userAgent]);
         } else {
-            return res.status(200).send(result);
+            // Admin user: return all agents
+            const result = await AgentsCoordinator.getAgents(req.params.organizationID);
+            if (result.message) {
+                return res.status(404).send(result);
+            } else {
+                return res.status(200).send(result);
+            }
         }
     } catch (error) {
         next(error);
@@ -135,6 +151,28 @@ export const deleteAgent = async (req, res, next) => {
 
 export const getMerchantByID = async (req, res, next) => {
     try {
+        // Check if user is admin or has restricted access
+        if (req.user && !req.user.isAdmin && req.userAgent) {
+            // Non-admin user: check if merchant belongs to their agent
+            const merchantID = req.params.merchantID;
+            const userAgent = req.userAgent;
+            
+            // Check if the merchant is in the user's agent clients list
+            const hasAccess = userAgent.clients && userAgent.clients.some(client => 
+                client.merchantID === merchantID
+            );
+            
+            if (!hasAccess) {
+                console.log(`Non-admin user ${req.user.username} attempted to access merchant ${merchantID} not in their client list`);
+                return res.status(403).json({ 
+                    error: 'Forbidden: You can only access merchants assigned to you.' 
+                });
+            }
+            
+            console.log(`Non-admin user ${req.user.username} accessing their merchant ${merchantID}`);
+        }
+        
+        // Proceed with the merchant lookup (for both admin and authorized non-admin users)
         const result = await AgentsCoordinator.getMerchantByID(req.params.organizationID, req.params.merchantID);
         if (!result.success) {
             return res.status(404).send(result);

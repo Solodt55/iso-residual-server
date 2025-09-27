@@ -14,18 +14,21 @@ export const login = async (req, res) => {
         console.log("User found: ", user);
         // Create the token payload
         const tokenPayload = {
+            userID: user.userID,  // Add userID to token
             username: user.username,
             organization: user.organizationID,
             isAdmin: user.isAdmin,  // Assuming `isAdmin` is a boolean property of `user`
-            email: 'cody@gmail.com'
+            email: user.email || 'cody@gmail.com'
         };
+        console.log("Token payload: ", tokenPayload);
 
         // Sign the token with the payload
         const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '24h' });
-
+        console.log("successfull");
         // Respond with the token
         res.status(200).json({ message: 'Login successful', token });
     } catch (error) {
+        console.error("Login error: ", error);
         res.status(400).json({ message: error.message });
     }
 };
