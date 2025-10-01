@@ -31,7 +31,11 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors(config.get('cors')));
 
 //set up routes
-app.use('/api/v1/reports', reportR);
+app.use('/api/v1/reports', 
+  adminOrAllowedRoutes([
+    { path: '/organizations/users-reports/', method: 'GET' }, 
+    { path: '/organizations/users-reports', method: 'GET' }
+  ]), reportR);
 app.use('/api/v2/reports', ReportsV2Route);
 app.use('/api/v2/auth', authR);
 app.use('/api/v2/users', isAdmin, userRouter);
