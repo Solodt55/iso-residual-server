@@ -5,7 +5,8 @@ export const login = async (req, res) => {
     try {
         console.log("am I here");
         const { username, password } = req.body;
-        console.log("username", username, 'password: ', password);
+        console.log("username", username, 'password:', password);
+        console.log(password.length);
         const user = await AuthCoordinator.loginUser(username, password);
         if (!user) {
             console.log("Invalid credentials");
