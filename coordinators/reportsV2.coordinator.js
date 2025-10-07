@@ -30,12 +30,31 @@ export default class ReportsV2Coor {
     }
   };
 
+  // Get all processor reports for a user in an organization
+  static getUsersProcessorReports = async (organizationID, userID) => {
+    try {
+      return await ReportsV2M.getUsersProcessorReports(organizationID, userID);
+    } catch (error) {
+      throw new Error("Error getting reports: " + error.message);
+    }
+  };
+
   // Get all reports for an organization
   static getAllReports = async (organizationID) => {
     try {
       return await ReportsV2M.getAllReports(organizationID);
     } catch (error) {
       throw new Error("Error getting all reports: " + error.message);
+    }
+  };
+
+  // Get all reports for a user in an organization
+  static getAllUsersReports = async (organizationID, userID = null) => {
+    try {
+      console.log(`[Coordinator] Getting user reports for org: ${organizationID}, userID: ${userID}`);
+      return await ReportsV2M.getAllUsersReports(organizationID, userID);
+    } catch (error) {
+      throw new Error('Error getting all users reports: ' + error.message);
     }
   };
 

@@ -39,6 +39,22 @@ export default class AgentsModel {
         }
     }
 
+    static getAgentByID = async (agentID) => {
+        try {
+            // console.log(`[getAgentByID] Looking for agent with agentID: ${agentID}`);
+            const agent = await db.dbAgents().findOne({ agentID }, { projection: Constants.DEFAULT_PROJECTION });
+            if (!agent) {
+                // console.log(`[getAgentByID] No agent found with agentID: ${agentID}`);
+                return null;
+            }
+            // console.log(`[getAgentByID] Found agent: ${agent.agentID} with ${agent.clients?.length || 0} clients`);
+            return agent;
+        } catch (error) {
+            // console.error(`[getAgentByID] Error finding agent by ID ${agentID}:`, error);
+            throw error;
+        }
+    }
+
     static getAgents = async (organizationID) => {
         try {
             // console.log('Fetching agents for organization:', organizationID);

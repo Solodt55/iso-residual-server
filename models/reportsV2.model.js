@@ -1,6 +1,7 @@
 import { db } from '../lib/database.lib.js';
 import Constants from '../lib/constants.lib.js';
 import { report } from 'process';
+import AgentsModel from './agents.model.js';
 
 export default class ReportsV2M {
   // General report functions
@@ -23,6 +24,108 @@ export default class ReportsV2M {
       return reports;
     } catch (error) {
       throw new Error('Error getting reports from DB: ' + error.message);
+    }
+  };
+  // Get all processor reports for a user in an organization
+  static getUsersProcessorReports = async (organizationID, userID = null) => {
+    try {
+      console.log(`[getUsersProcessorReports] Getting processor reports for org: ${organizationID}, userID: ${userID}`);
+      
+      // If no userID provided (admin), return all processor reports
+      if (!userID) {
+        console.log(`[getUsersProcessorReports] No userID provided, returning all processor reports`);
+        const reports = await db.dbReports().find(
+          { organizationID, type: 'processor' },
+          { projection: Constants.DEFAULT_PROJECTION }
+        ).toArray();
+        return reports;
+      }
+
+      // Get all processor reports for the organization
+      const reports = await db.dbReports().find(
+        { organizationID, type: 'processor' },
+        { projection: Constants.DEFAULT_PROJECTION }
+      ).toArray();
+      console.log(`[getUsersProcessorReports] Found ${reports.length} processor reports total`);
+
+      // Get the agent data to find their client list
+      const agent = await AgentsModel.getAgentByID(userID);
+      
+      if (!agent || !agent.clients || !Array.isArray(agent.clients)) {
+        console.log(`[getUsersProcessorReports] No agent found or no clients for userID: ${userID}`);
+        return []; // Return empty array if user is not an agent or has no clients
+      }
+
+      // Extract merchantIDs from the agent's clients array
+      const userMerchantIDs = agent.clients.map(client => client.merchantID).filter(Boolean);
+      console.log(`[getUsersProcessorReports] Agent has ${userMerchantIDs.length} merchant clients:`, userMerchantIDs);
+
+      if (userMerchantIDs.length === 0) {
+        console.log(`[getUsersProcessorReports] Agent has no merchant clients`);
+        return [];
+      }
+
+      // Filter each report's data to only include user's merchants
+      const filteredReports = reports.map(report => {
+        if (!report.reportData || !Array.isArray(report.reportData)) {
+          console.log(`[getUsersProcessorReports] Report ${report.reportID} has no reportData array`);
+          return { ...report, reportData: [] };
+        }
+
+        // Filter reportData to only include merchants that belong to this user
+        const filteredReportData = report.reportData.filter(dataItem => {
+          // Handle nested reportData (array inside array)
+          if (Array.isArray(dataItem.reportData)) {
+            console.log(`[getUsersProcessorReports] Found nested reportData in report ${report.reportID}`);
+            return dataItem.reportData.some(nestedItem => {
+              const merchantId = nestedItem['Merchant Id'];
+              return merchantId && userMerchantIDs.includes(merchantId);
+            });
+          } else {
+            // Handle direct reportData
+            const merchantId = dataItem['Merchant Id'];
+            const isUserMerchant = merchantId && userMerchantIDs.includes(merchantId);
+            if (isUserMerchant) {
+              console.log(`[getUsersProcessorReports] Including merchant ${merchantId} in report ${report.reportID}`);
+            }
+            return isUserMerchant;
+          }
+        });
+
+        // If nested reportData, also filter the nested arrays
+        const processedReportData = filteredReportData.map(dataItem => {
+          if (Array.isArray(dataItem.reportData)) {
+            return {
+              ...dataItem,
+              reportData: dataItem.reportData.filter(nestedItem => {
+                const merchantId = nestedItem['Merchant Id'];
+                return merchantId && userMerchantIDs.includes(merchantId);
+              })
+            };
+          }
+          return dataItem;
+        });
+
+        console.log(`[getUsersProcessorReports] Report ${report.reportID}: ${report.reportData.length} -> ${processedReportData.length} merchants after filtering`);
+
+        return {
+          ...report,
+          reportData: processedReportData
+        };
+      }).filter(report => {
+        // Remove reports that have no data after filtering
+        const hasData = report.reportData && report.reportData.length > 0;
+        if (!hasData) {
+          console.log(`[getUsersProcessorReports] Removing empty report ${report.reportID}`);
+        }
+        return hasData;
+      });
+
+      console.log(`[getUsersProcessorReports] Returning ${filteredReports.length} filtered processor reports`);
+      return filteredReports;
+    } catch (error) {
+      console.error(`[getUsersProcessorReports] Error:`, error);
+      throw new Error('Error getting processor reports from DB: ' + error.message);
     }
   };
   // Get all reports for an organization by month
@@ -49,6 +152,95 @@ export default class ReportsV2M {
       throw new Error('Error getting all reports from DB: ' + error.message);
     }
   };
+  // Get all reports for a user in an organization
+  static getAllUsersReports = async (organizationID, userID = null) => {
+    try {
+      console.log(`[getAllUsersReports] Getting reports for org: ${organizationID}, userID: ${userID}`);
+      
+      // Get all reports for the organization
+      const reports = await db.dbReports().find({ organizationID }, { projection: Constants.DEFAULT_PROJECTION }).toArray();
+      console.log(`[getAllUsersReports] Found ${reports.length} reports total`);
+
+      // Get the agent data to find their client list
+      const agent = await AgentsModel.getAgentByID(userID);
+      
+      if (!agent || !agent.clients || !Array.isArray(agent.clients)) {
+        console.log(`[getAllUsersReports] No agent found or no clients for userID: ${userID}`);
+        return []; // Return empty array if user is not an agent or has no clients
+      }
+
+      // Extract merchantIDs from the agent's clients array
+      const userMerchantIDs = agent.clients.map(client => client.merchantID).filter(Boolean);
+      console.log(`[getAllUsersReports] Agent has ${userMerchantIDs.length} merchant clients:`, userMerchantIDs);
+
+      if (userMerchantIDs.length === 0) {
+        console.log(`[getAllUsersReports] Agent has no merchant clients`);
+        return [];
+      }
+
+      // Filter each report's data to only include user's merchants
+      const filteredReports = reports.map(report => {
+        if (!report.reportData || !Array.isArray(report.reportData)) {
+          console.log(`[getAllUsersReports] Report ${report.reportID} has no reportData array`);
+          return { ...report, reportData: [] };
+        }
+
+        // Filter reportData to only include merchants that belong to this user
+        const filteredReportData = report.reportData.filter(dataItem => {
+          // Handle nested reportData (array inside array)
+          if (Array.isArray(dataItem.reportData)) {
+            console.log(`[getAllUsersReports] Found nested reportData in report ${report.reportID}`);
+            return dataItem.reportData.some(nestedItem => {
+              const merchantId = nestedItem['Merchant Id'];
+              return merchantId && userMerchantIDs.includes(merchantId);
+            });
+          } else {
+            // Handle direct reportData
+            const merchantId = dataItem['Merchant Id'];
+            const isUserMerchant = merchantId && userMerchantIDs.includes(merchantId);
+            if (isUserMerchant) {
+              console.log(`[getAllUsersReports] Including merchant ${merchantId} in report ${report.reportID}`);
+            }
+            return isUserMerchant;
+          }
+        });
+
+        // If nested reportData, also filter the nested arrays
+        const processedReportData = filteredReportData.map(dataItem => {
+          if (Array.isArray(dataItem.reportData)) {
+            return {
+              ...dataItem,
+              reportData: dataItem.reportData.filter(nestedItem => {
+                const merchantId = nestedItem['Merchant Id'];
+                return merchantId && userMerchantIDs.includes(merchantId);
+              })
+            };
+          }
+          return dataItem;
+        });
+
+        console.log(`[getAllUsersReports] Report ${report.reportID}: ${report.reportData.length} -> ${processedReportData.length} merchants after filtering`);
+
+        return {
+          ...report,
+          reportData: processedReportData
+        };
+      }).filter(report => {
+        // Remove reports that have no data after filtering
+        const hasData = report.reportData && report.reportData.length > 0;
+        if (!hasData) {
+          console.log(`[getAllUsersReports] Removing empty report ${report.reportID}`);
+        }
+        return hasData;
+      });
+
+      console.log(`[getAllUsersReports] Returning ${filteredReports.length} filtered reports`);
+      return filteredReports;
+    } catch (error) {
+      console.error(`[getAllUsersReports] Error:`, error);
+      throw new Error('Error getting all users reports from DB: ' + error.message);
+    }
+    };
   // Update a report
   static updateReport = async (reportID, reportData) => {
     try {

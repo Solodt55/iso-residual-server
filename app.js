@@ -33,16 +33,21 @@ app.use(cors(config.get('cors')));
 //set up routes
 app.use('/api/v1/reports', 
   adminOrAllowedRoutes([
-    { path: '/organizations/users-reports/', method: 'GET' }, 
-    { path: '/organizations/users-reports', method: 'GET' }
+    { path: '/organizations/users/', method: 'GET' }, 
+    { path: '/organizations/users', method: 'GET' }
   ]), reportR);
-app.use('/api/v2/reports', ReportsV2Route);
+app.use('/api/v2/reports', 
+  adminOrAllowedRoutes([
+    { path: '/organizations/users/', method: 'GET' }, 
+    { path: '/organizations/users/', method: 'POST' }, 
+    { path: '/organizations/users', method: 'GET' }
+  ]), ReportsV2Route);
 app.use('/api/v2/auth', authR);
 app.use('/api/v2/users', isAdmin, userRouter);
 app.use('/api/v2/agents', 
   adminOrAllowedRoutes([
-    { path: '/organizations/users-reports/', method: 'GET' }, 
-    { path: '/organizations/users-reports', method: 'GET' }
+    { path: '/organizations/users/', method: 'GET' }, 
+    { path: '/organizations/users', method: 'GET' }
   ]), AgentsRoute);
 app.use('/api/v2/invoices', isAdmin, invoicesRoute);
 app.use('/api/v2/dashboard', DashboardRoute);

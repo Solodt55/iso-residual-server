@@ -15,10 +15,11 @@ export const login = async (req, res) => {
         console.log("User found: ", user);
         // Create the token payload
         const tokenPayload = {
+            userID: user.userID,
             username: user.username,
             organization: user.organizationID,
             isAdmin: user.isAdmin,  // Assuming `isAdmin` is a boolean property of `user`
-            email: 'cody@gmail.com'
+            email: user.email
         };
 
         // Sign the token with the payload
@@ -46,29 +47,7 @@ export const signup = async (req, res) => {
 };
 
 export const generateToken = async (req, res) => {
-    try {
-        const { username, roleId, email , user_id} = req.body;
-        // Create the token payload with just username
-        const tokenPayload = {
-            username: username,
-            organization: 'org-86f76df1',
-            isAdmin: true,  // Assuming `isAdmin` is a boolean property of `user`
-            roleId: roleId,
-            email: email,
-            user_id: user_id
-        };
-
-        // Sign the token with the payload
-        const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '24h' });
-
-        // Respond with the token
-        res.status(200).json({ 
-            message: 'Token generated successfully', 
-            token,
-            payload: tokenPayload 
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    res.status(404).json({ message: "Not implemented" });
 };
+
 

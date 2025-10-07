@@ -33,7 +33,7 @@ export const adminOrAllowedRoutes = (allowedRoutes = []) => {
 
         try {
             const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-
+            console.log('Decoded Token:', decodedToken);
             // Check if user is admin
             if (decodedToken.isAdmin) {
                 return next();
@@ -47,6 +47,7 @@ export const adminOrAllowedRoutes = (allowedRoutes = []) => {
 
             if (isAllowedRoute || decodedToken.isAdmin) {
                 req.user = decodedToken;
+                console.log('Access granted for non-admin user on allowed route.');
                 return next();
             }
 

@@ -170,6 +170,39 @@ export default class AgentsCoordinator {
         }
     };
 
+    static getUsersAgent = async (organizationID, userID) => {
+        try {
+            // console.log('=== COORDINATOR DEBUG ===');
+            // console.log('getUsersAgent - organizationID:', organizationID);
+            // console.log('getUsersAgent - userID:', userID);
+            // console.log('About to call AgentsModel.getAgentByID with userID:', userID);
+            // console.log('========================');
+            
+            const agent = await AgentsModel.getAgentByID(userID);
+            
+            // console.log('=== COORDINATOR RESULT ===');
+            // console.log('Agent found for userID', userID, ':', agent);
+            // console.log('=========================');
+            
+            if (!agent) {
+                // console.log('=== NO AGENT FOUND ===');
+                // console.log('Returning success: false with message for userID:', userID);
+                // console.log('=====================');
+                return { success: false, message: `No agent found with ID ${userID}` };
+            }
+            
+            // console.log('=== AGENT FOUND ===');
+            // console.log('Returning success: true with agent data');
+            // console.log('==================');
+            return { success: true, agents: agent };
+        } catch (error) {
+            // console.log('=== COORDINATOR ERROR ===');
+            // console.log('Error in getUsersAgent:', error);
+            // console.log('========================');
+            throw error;
+        }
+    };
+
     static updateAgent = async (organizationID, agentID, update) => {
         try {
             const agent = await AgentsModel.getAgent(organizationID, agentID);
