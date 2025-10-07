@@ -83,6 +83,7 @@ export const reauditAgents = async (req, res, next) => {
 
 export const getAgent = async (req, res, next) => {
     try {
+        console.log('I should not be here')
         const result = await AgentsCoordinator.getAgent(req.params.organizationID, req.params.agentID);
         if (result.message) {
             return res.status(404).send(result);
@@ -90,6 +91,34 @@ export const getAgent = async (req, res, next) => {
             return res.status(200).send(result);
         }
     } catch (error) {
+        next(error);
+    }
+};
+
+export const getUsersAgent = async (req, res, next) => {
+    try {
+        // console.log('=== getUsersAgent Controller Debug ===');
+        // console.log('req.params:', req.params);
+        // console.log('req.user:', req?.user);
+        // console.log('organizationID:', req.params.organizationID);
+        // console.log('userID from JWT:', req.user?.userID);
+        // console.log('=======================================');
+        
+        const result = await AgentsCoordinator.getUsersAgent(req.params.organizationID, req.user.userID);
+        
+        // console.log('=== getUsersAgent Result ===');
+        // console.log('result:', JSON.stringify(result, null, 2));
+        // console.log('============================');
+        
+        if (result.message) {
+            return res.status(404).send(result);
+        } else {
+            return res.status(200).send(result);
+        }
+    } catch (error) {
+        // console.error('=== getUsersAgent Error ===');
+        // console.error('error:', error);
+        // console.error('===========================');
         next(error);
     }
 };

@@ -11,7 +11,7 @@ import authR from './routes/auth.route.js';
 import userRouter from './routes/users.route.js';
 import webhooksRouter from './routes/webhooks.route.js';
 // import middleware
-import { isAdmin } from './middleware/admin.middleware.js';
+import { isAdmin, adminOrAllowedRoutes } from './middleware/admin.middleware.js';
 // import db
 import { db } from './lib/database.lib.js';
 import invoicesRoute from './routes/invoices.route.js';
@@ -31,11 +31,24 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors(config.get('cors')));
 
 //set up routes
-app.use('/api/v1/reports', reportR);
-app.use('/api/v2/reports', ReportsV2Route);
+app.use('/api/v1/reports', 
+  adminOrAllowedRoutes([
+    { path: '/organizations/users/', method: 'GET' }, 
+    { path: '/organizations/users', method: 'GET' }
+  ]), reportR);
+app.use('/api/v2/reports', 
+  adminOrAllowedRoutes([
+    { path: '/organizations/users/', method: 'GET' }, 
+    { path: '/organizations/users/', method: 'POST' }, 
+    { path: '/organizations/users', method: 'GET' }
+  ]), ReportsV2Route);
 app.use('/api/v2/auth', authR);
 app.use('/api/v2/users', isAdmin, userRouter);
-app.use('/api/v2/agents', isAdmin, AgentsRoute);
+app.use('/api/v2/agents', 
+  adminOrAllowedRoutes([
+    { path: '/organizations/users/', method: 'GET' }, 
+    { path: '/organizations/users', method: 'GET' }
+  ]), AgentsRoute);
 app.use('/api/v2/invoices', isAdmin, invoicesRoute);
 app.use('/api/v2/dashboard', DashboardRoute);
 app.use('/api/v2/webhooks', webhooksRouter);

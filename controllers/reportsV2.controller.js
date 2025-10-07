@@ -29,6 +29,20 @@ export default class ReportsV2Con {
     }
   };
 
+  // Get all reports of a certain type for a user in an organization
+  static getUsersProcessorReports = async (req, res, next) => {
+    try {
+      const userID = req.user?.userID || null;
+      const reports = await ReportsV2Coor.getUsersProcessorReports(req.params.organizationID, userID);
+      if (!reports || reports.length === 0) {
+        return res.status(404).json({ message: 'No reports found' });
+      }
+      return res.status(200).json(reports);
+    } catch (error) {
+      next(error);
+    }
+  };
+
     // Get all reports for an organization
   static getAllReports = async (req, res, next) => {
     try {
@@ -39,6 +53,27 @@ export default class ReportsV2Con {
       return res.status(200).json(reports);
     } catch (error) {
       next(error);
+    }
+  };
+
+    // Get all reports for a user in an organization
+    static getAllUsersReports = async (req, res) => {
+    try {
+      const { organizationID } = req.params;
+      
+      // Get userID from JWT token (added by middleware)
+      const userID = req.user?.userID || null;
+      const isAdmin = req.user?.isAdmin || false;
+      
+      console.log(`[Controller] Getting reports for org: ${organizationID}, userID: ${userID}, isAdmin: ${isAdmin}`);
+      
+      // Pass userID to coordinator (null for admins to get all data)
+      const reports = await ReportsV2Coor.getAllUsersReports(organizationID, isAdmin ? null : userID);
+      
+      res.status(200).json(reports);
+    } catch (error) {
+      console.error('Error getting user reports:', error);
+      res.status(500).json({ message: error.message });
     }
   };
 
@@ -278,32 +313,88 @@ static updateReport = async (req, res, next) => {
     }
   };
 
-    // Get agent report
-    static getAgentReport = async (req, res, next) => {
-      try {
-          const monthYear = `${req.params.month} ${req.params.year}`;
-          // console.log(`[AgentReport] Fetching report for Month Year: ${monthYear}`);
-          const agentReport = await ReportsV2Coor.getAgentReport(req.params.organizationID, req.params.agentID, monthYear);
-
-          // console.log(JSON.stringify(agentReport, null, 2));
-
-          
-          if (!agentReport || agentReport.length === 0) {
-              // console.log(`[AgentReport] No report found for organizationID: ${req.params.organizationID}, agentID: ${req.params.agentID}, monthYear: ${monthYear}`);
-              return res.status(204).json({ 
-                  message: 'No agent reports found',
-                  organizationID: req.params.organizationID,
-                  agentID: req.params.agentID,
-                  monthYear
-              });
-          }
-          // console.log(`[AgentReport] Report found:`, agentReport);
-          return res.status(200).json(agentReport);
-  
-      } catch (error) {
-          console.error(`[AgentReport] Error fetching report:`, error);
-          next(error);
+  // Agent Report functions
+    // Build agent report
+  static buildUsersAgentReport = async (req, res, next) => {
+    try {
+      if (!req.user.isAdmin) {
+        console.log(`req.user: `, JSON.stringify(req.user, null, 2));
+        console.log(`req.user.agentID: ${req.user.userID}`);
+        console.log(`req.params.agentID: ${req.params.agentID}`);
+        if (req.user.userID !== req.params.agentID) {
+          return res.status(403).json({ message: 'Forbidden: You do not have access to build this agent report' });
+        }
       }
+      const agentReport = await ReportsV2Coor.buildAgentReport(req.params.organizationID, req.params.agentID, req.body.monthYear);
+      // console.log(JSON.stringify(agentReport, null, 2));
+      if (!agentReport) {
+        return res.status(404).json({ message: 'Agent report not found' });
+      }
+      return res.status(200).json(agentReport);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get agent report
+  static getAgentReport = async (req, res, next) => {
+    try {
+      const monthYear = `${req.params.month} ${req.params.year}`;
+      // console.log(`[AgentReport] Fetching report for Month Year: ${monthYear}`);
+      const agentReport = await ReportsV2Coor.getAgentReport(req.params.organizationID, req.params.agentID, monthYear);
+
+      // console.log(JSON.stringify(agentReport, null, 2));
+
+      
+      if (!agentReport || agentReport.length === 0) {
+          // console.log(`[AgentReport] No report found for organizationID: ${req.params.organizationID}, agentID: ${req.params.agentID}, monthYear: ${monthYear}`);
+          return res.status(204).json({ 
+              message: 'No agent reports found',
+              organizationID: req.params.organizationID,
+              agentID: req.params.agentID,
+              monthYear
+          });
+      }
+      // console.log(`[AgentReport] Report found:`, agentReport);
+      return res.status(200).json(agentReport);
+
+    } catch (error) {
+      console.error(`[AgentReport] Error fetching report:`, error);
+      next(error);
+    }
+  };
+
+  // Get users agent report
+  static getUsersAgentReport = async (req, res, next) => {
+    try {
+      if (!req.user.isAdmin) {
+        if (req.user.userID !== req.params.agentID) {
+          return res.status(403).json({ message: 'Forbidden: You do not have access to view this agent report' });
+        }
+      }
+      const monthYear = `${req.params.month} ${req.params.year}`;
+      // console.log(`[AgentReport] Fetching report for Month Year: ${monthYear}`);
+      const agentReport = await ReportsV2Coor.getAgentReport(req.params.organizationID, req.params.agentID, monthYear);
+
+      // console.log(JSON.stringify(agentReport, null, 2));
+
+      
+      if (!agentReport || agentReport.length === 0) {
+          // console.log(`[AgentReport] No report found for organizationID: ${req.params.organizationID}, agentID: ${req.params.agentID}, monthYear: ${monthYear}`);
+          return res.status(204).json({ 
+              message: 'No agent reports found',
+              organizationID: req.params.organizationID,
+              agentID: req.params.agentID,
+              monthYear
+          });
+      }
+      // console.log(`[AgentReport] Report found:`, agentReport);
+      return res.status(200).json(agentReport);
+
+    } catch (error) {
+      console.error(`[AgentReport] Error fetching report:`, error);
+      next(error);
+    }
   };
   
 

@@ -5,7 +5,8 @@ export const login = async (req, res) => {
     try {
         console.log("am I here");
         const { username, password } = req.body;
-        console.log("username", username, 'password: ', password);
+        console.log("username", username, 'password:', password);
+        console.log(password.length);
         const user = await AuthCoordinator.loginUser(username, password);
         if (!user) {
             console.log("Invalid credentials");
@@ -14,10 +15,11 @@ export const login = async (req, res) => {
         console.log("User found: ", user);
         // Create the token payload
         const tokenPayload = {
+            userID: user.userID,
             username: user.username,
             organization: user.organizationID,
             isAdmin: user.isAdmin,  // Assuming `isAdmin` is a boolean property of `user`
-            email: 'cody@gmail.com'
+            email: user.email
         };
 
         // Sign the token with the payload

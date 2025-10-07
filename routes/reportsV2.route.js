@@ -76,17 +76,25 @@ reportR.post('/organizations/:organizationID/agent-summary/approve', ReportsV2Co
     // Get agent summary report
 reportR.get('/organizations/:organizationID/agent-summary/:month/:year', ReportsV2Con.getAgentSummaryReport);
   // Agent Report Routes
+    // Build users agent report
+reportR.post('/organizations/users/:organizationID/:agentID', ReportsV2Con.buildUsersAgentReport);
     // Build agent report
 reportR.post('/organizations/:organizationID/:agentID', ReportsV2Con.buildAgentReport);
     // Create agent report
 reportR.post('/organizations/:organizationID/:agentID/agent-report', ReportsV2Con.createAgentReport);
+    // Get users agent report
+reportR.get('/organizations/users/:organizationID/:agentID/:month/:year', ReportsV2Con.getAgentReport);
     // Get agent report
 reportR.get('/organizations/:organizationID/:agentID/:month/:year', ReportsV2Con.getAgentReport);
 
-
+// /users/
   // General Report Routes
     // get all reports for an organization
 reportR.get('/organizations/:organizationID', ReportsV2Con.getAllReports);
+    // get all reports for a user in an organization
+reportR.get('/organizations/users/:organizationID', ReportsV2Con.getAllUsersReports);
+    // get processor reports for a user in an organization
+reportR.get('/organizations/users/:organizationID/processor', ReportsV2Con.getUsersProcessorReports);
     // get all reports of a specific type for an organization
 reportR.get('/organizations/:organizationID/:type', ReportsV2Con.getReports);
     // get a specific report

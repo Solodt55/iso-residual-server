@@ -3,6 +3,7 @@ import {
     createAgent,
     uploadAgents,
     getAgent,
+    getUsersAgent,
     getAgents,
     updateAgent,
     deleteAgent,
@@ -38,17 +39,22 @@ agentsRoute.use((req, res, next) => {
     // console.log(`Request received for path: ${req.path}`);
     next();
 });
-
+// /users/
 // Routes
 // New route for re-audit
 agentsRoute.post('/organizations/:organizationID/reaudit', reauditAgents);
 agentsRoute.post('/organizations/:organizationID/batch', upload.single('agents'), uploadAgents);
+// MOST SPECIFIC routes must come FIRST to avoid conflicts
+agentsRoute.get('/organizations/users/:organizationID', getUsersAgent);
+agentsRoute.get('/organizations/:organizationID/merchants/:merchantID', getMerchantByID);
+agentsRoute.get('/organizations/:organizationID/user/:userId', getAgentByUserId);
+// Generic routes come after specific ones
+agentsRoute.get('/organizations/users/:organizationID/:agentID', getUsersAgent); // can ignore the agentID in params since we get from JWT, any altering of the params id would be malicious
 agentsRoute.get('/organizations/:organizationID/:agentID', getAgent);
 agentsRoute.patch('/organizations/:organizationID/:agentID', updateAgent);
 agentsRoute.delete('/organizations/:organizationID/:agentID', deleteAgent);
 agentsRoute.post('/organizations/:organizationID', createAgent);
+// Most generic route comes LAST
 agentsRoute.get('/organizations/:organizationID', getAgents);
-agentsRoute.get('/organizations/:organizationID/merchants/:merchantID', getMerchantByID);
-agentsRoute.get('/organizations/:organizationID/user/:userId', getAgentByUserId);
 
 export default agentsRoute;
