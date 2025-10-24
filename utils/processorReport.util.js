@@ -89,6 +89,9 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
         console.log(`[BuildProcRows] Starting to process ${csvData.length} rows for processor: ${processor}`);
         console.log(`[BuildProcRows] Processor type: ${processorType}`);
         console.log(`[BuildProcRows] Organization ID: ${organizationID}`);
+        console.log(`[BuildProcRows] Sample input data (first 3 rows):`, csvData.slice(0, 3));
+        console.log(`[BuildProcRows] BranchIDMap keys count:`, Object.keys(branchIDMap).length);
+        console.log(`[BuildProcRows] BranchIDMap sample:`, Object.keys(branchIDMap).slice(0, 5));
         
         try {
             const procRowsArray = await Promise.all(
@@ -113,6 +116,7 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
 
                         if (!merchantID || merchantName === 'CLIENT LEVEL EXPENSE') {
                             console.log(`[BuildProcRows] Row ${index + 1} - SKIPPING: Invalid merchant ID or CLIENT LEVEL EXPENSE`);
+                            console.log(`[BuildProcRows] Row ${index + 1} - SKIP REASON: merchantID="${merchantID}", merchantName="${merchantName}"`);
                             return null; // Skip invalid or unnecessary rows
                         };
 
@@ -258,23 +262,58 @@ const buildProcRows = async (processor, csvData, branchIDMap, organizationID) =>
                         } catch (splitsError) {
                             console.error(`[BuildProcRows] Row ${index + 1} - Error fetching splits or creating row:`, splitsError);
                             console.error(`[BuildProcRows] Row ${index + 1} - Merchant ID: ${merchantID}, Organization ID: ${organizationID}`);
+                            console.error(`[BuildProcRows] Row ${index + 1} - Full row data:`, JSON.stringify(row, null, 2));
+                            console.error(`[BuildProcRows] Row ${index + 1} - CRITICAL: This row will be LOST due to splits error`);
                             // Return null instead of throwing to prevent Promise.all from failing
                             return null;
                         }
                     } catch (rowError) {
                         console.error(`[BuildProcRows] Row ${index + 1} - Error processing row:`, rowError);
                         console.error(`[BuildProcRows] Row ${index + 1} - Row data:`, row);
+                        console.error(`[BuildProcRows] Row ${index + 1} - CRITICAL: This row will be LOST due to processing error`);
                         // Return null instead of throwing to prevent Promise.all from failing
                         return null;
                     }
                 })
-            );            console.log(`[BuildProcRows] Promise.all completed. Processing ${procRowsArray.length} results`);
+            );            
+            console.log(`[BuildProcRows] Promise.all completed. Processing ${procRowsArray.length} results`);
+            
+            // Enhanced debugging to track missing rows
+            let nullCount = 0;
+            let undefinedCount = 0;
+            let validCount = 0;
+            let errorRows = [];
+            
+            procRowsArray.forEach((row, index) => {
+                if (row === null) {
+                    nullCount++;
+                    console.log(`[BuildProcRows] Row ${index + 1} returned NULL - likely skipped or errored`);
+                } else if (row === undefined) {
+                    undefinedCount++;
+                    console.log(`[BuildProcRows] Row ${index + 1} returned UNDEFINED`);
+                } else {
+                    validCount++;
+                }
+            });
+            
+            console.log(`[BuildProcRows] SUMMARY - Total processed: ${procRowsArray.length}`);
+            console.log(`[BuildProcRows] SUMMARY - Valid rows: ${validCount}`);
+            console.log(`[BuildProcRows] SUMMARY - NULL rows (skipped/errored): ${nullCount}`);
+            console.log(`[BuildProcRows] SUMMARY - UNDEFINED rows: ${undefinedCount}`);
+            console.log(`[BuildProcRows] SUMMARY - Success rate: ${((validCount / procRowsArray.length) * 100).toFixed(2)}%`);
             
             // Filter out any null or undefined rows (e.g., skipped rows). Since we are using map instead of forEach now
             console.log('about to return valid rows');
             const validRows = procRowsArray.filter(row => row !== null && row !== undefined);
             console.log(`valid rows length: ${validRows.length}`);
             console.log(`valid rows sample:`, validRows.slice(0, 2));
+            
+            // Log if there's a significant difference between input and output
+            if (csvData.length !== validRows.length) {
+                console.warn(`[BuildProcRows] WARNING: Input had ${csvData.length} rows but only ${validRows.length} valid rows returned`);
+                console.warn(`[BuildProcRows] WARNING: ${csvData.length - validRows.length} rows were lost during processing`);
+            }
+            
             return validRows;
         } catch (promiseError) {
             console.error('[BuildProcRows] Error in Promise.all:', promiseError);

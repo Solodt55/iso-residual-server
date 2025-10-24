@@ -202,20 +202,38 @@ export default class AgentsModel {
                 }
             ).toArray();
 
+            console.log(`[getAgentsMerchantSplitsByMerchantID] Query for merchantID ${merchantID} returned ${agents ? agents.length : 0} agents`);
+            if (agents && agents.length > 0) {
+                console.log(`[getAgentsMerchantSplitsByMerchantID] Sample agent data:`, JSON.stringify(agents[0], null, 2));
+            }
+
             if (!agents || agents.length === 0) {
+                console.log(`[getAgentsMerchantSplitsByMerchantID] No agents found for merchantID: ${merchantID}`);
                 return [];
             }
 
             // Transform the data to the required format
             const result = agents.map(agent => {
+                // Add safety checks for agent.clients
+                if (!agent.clients || !Array.isArray(agent.clients) || agent.clients.length === 0) {
+                    console.warn(`[getAgentsMerchantSplitsByMerchantID] Agent ${agent.fName} ${agent.lName} has no clients array or empty clients`);
+                    return null; // Skip this agent
+                }
+                
                 const merchant = agent.clients[0]; 
+                
+                // Add safety check for merchant data
+                if (!merchant || !merchant.splitPercentage) {
+                    console.warn(`[getAgentsMerchantSplitsByMerchantID] Agent ${agent.fName} ${agent.lName} has invalid merchant data`);
+                    return null; // Skip this agent
+                }
                 
                 return {
                     type: "rep",
                     name: `${agent.fName} ${agent.lName}`,
                     value: merchant.splitPercentage
                 };
-            });
+            }).filter(item => item !== null); // Remove null entries
 
             return result;
         } catch (error) {

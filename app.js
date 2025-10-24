@@ -50,7 +50,7 @@ app.use('/api/v2/agents',
     { path: '/organizations/users', method: 'GET' }
   ]), AgentsRoute);
 app.use('/api/v2/invoices', isAdmin, invoicesRoute);
-app.use('/api/v2/dashboard', DashboardRoute);
+app.use('/api/v2/dashboard', isAdmin, DashboardRoute);
 app.use('/api/v2/webhooks', webhooksRouter);
 
 // setup db
