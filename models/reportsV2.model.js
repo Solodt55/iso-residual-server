@@ -43,7 +43,11 @@ export default class ReportsV2M {
 
       // Get all processor reports for the organization
       const reports = await db.dbReports().find(
-        { organizationID, type: 'processor' },
+        { 
+          organizationID, 
+          type: 'processor',
+          'reportData.approved': true
+        },
         { projection: Constants.DEFAULT_PROJECTION }
       ).toArray();
       console.log(`[getUsersProcessorReports] Found ${reports.length} processor reports total`);
@@ -158,7 +162,10 @@ export default class ReportsV2M {
       console.log(`[getAllUsersReports] Getting reports for org: ${organizationID}, userID: ${userID}`);
       
       // Get all reports for the organization
-      const reports = await db.dbReports().find({ organizationID }, { projection: Constants.DEFAULT_PROJECTION }).toArray();
+      const reports = await db.dbReports().find({ 
+        organizationID,
+        'reportData.approved': true
+      }, { projection: Constants.DEFAULT_PROJECTION }).toArray();
       console.log(`[getAllUsersReports] Found ${reports.length} reports total`);
 
       // Get the agent data to find their client list
