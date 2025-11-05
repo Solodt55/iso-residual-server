@@ -1,16 +1,16 @@
 import { v4 as uuid } from 'uuid';
 export default class User {
-  constructor(organization, fName, lName, email, username, password) {
-    this.userID = `user-${uuid().slice(-8)}`;
-    this.organizationID = `org-${uuid().slice(-8)}`;
+  constructor(userID, organizationID, organization, fName, lName, email, username, password, isAdmin = false) {
+    this.userID = userID;
+    this.organizationID = organizationID;
     this.organization = organization;
     this.fName = fName;
     this.lName = lName;
     this.email = email
     this.username = username;
     this.password = password;
-    this.isAdmin = true;
-    this.status = 'pending';
+    this.isAdmin = isAdmin;
+    this.status = 'active';
   }
 
   updateUser(data) {

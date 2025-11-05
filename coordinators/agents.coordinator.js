@@ -1,7 +1,10 @@
 import AgentsModel from '../models/agents.model.js';
+import UsersModel from '../models/users.model.js';
 import Agent from '../classes/agent.class.js';
+import User from '../classes/user.class.js';
 import AgentsUtil from '../utils/agents.util.js';
 import { parseFile } from '../utils/fileParser.util.js';
+import c from 'config';
 
 export default class AgentsCoordinator {
 
@@ -30,8 +33,30 @@ export default class AgentsCoordinator {
                 agent.additional_splits,
                 agent.user_id  // Add user_id if provided
             );
+            // create new user for agent
+            const newUser = new User(
+                newAgent.agentID,  // userID
+                organizationID,    // organizationID
+                agent.organization,
+                agent.fName,
+                agent.lName,
+                agent.email,
+                agent.username,
+                agent.password,
+                agent.isAdmin
+            );
             
+            const userResult = await UsersModel.addUser(newUser);
+            
+            if (!userResult.acknowledged) {
+                return {
+                    acknowledged: false,
+                    message: "Error creating user for agent: " + userResult.message
+                };
+            }
+
             const result = await AgentsModel.createAgent(newAgent);
+            
             return { ...result, agentID: newAgent.agentID };
         } catch (error) {
             throw error;

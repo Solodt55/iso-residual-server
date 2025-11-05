@@ -2,7 +2,9 @@ import AgentsCoordinator from '../coordinators/agents.coordinator.js';
 
 export const createAgent = async (req, res, next) => {
     try {
+
         const result = await AgentsCoordinator.createAgent(req.params.organizationID, req.body);
+ 
         if (!result.acknowledged) {
             return res.status(400).send(result);
         } else {

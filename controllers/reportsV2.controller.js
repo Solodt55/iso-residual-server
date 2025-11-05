@@ -35,7 +35,7 @@ export default class ReportsV2Con {
       const userID = req.user?.userID || null;
       const reports = await ReportsV2Coor.getUsersProcessorReports(req.params.organizationID, userID);
       if (!reports || reports.length === 0) {
-        return res.status(404).json({ message: 'No reports found' });
+        return res.status(404).json({ message: 'No user reports found' });
       }
       return res.status(200).json(reports);
     } catch (error) {
@@ -64,8 +64,6 @@ export default class ReportsV2Con {
       // Get userID from JWT token (added by middleware)
       const userID = req.user?.userID || null;
       const isAdmin = req.user?.isAdmin || false;
-      
-      console.log(`[Controller] Getting reports for org: ${organizationID}, userID: ${userID}, isAdmin: ${isAdmin}`);
       
       // Pass userID to coordinator (null for admins to get all data)
       const reports = await ReportsV2Coor.getAllUsersReports(organizationID, isAdmin ? null : userID);

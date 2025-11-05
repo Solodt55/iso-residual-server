@@ -1,5 +1,5 @@
 import UsersModel from '../models/users.model.js';
-import User from '../classes/user.class.js';
+import f from '../classes/user.class.js';
 import bcrypt from 'bcryptjs';
 import { v4 as UUID } from 'uuid';
 

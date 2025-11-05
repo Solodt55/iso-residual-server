@@ -36,7 +36,11 @@ const upload = multer({
 
 // Logging middleware
 agentsRoute.use((req, res, next) => {
-    // console.log(`Request received for path: ${req.path}`);
+    console.log(`[ROUTE] Request received for path: ${req.path}`);
+    console.log(`[ROUTE] Method: ${req.method}`);
+    console.log(`[ROUTE] Params:`, req.params);
+    console.log(`[ROUTE] Query:`, req.query);
+    console.log(`[ROUTE] Body:`, req.body);
     next();
 });
 // /users/
