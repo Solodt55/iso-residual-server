@@ -3,6 +3,7 @@ import UsersModel from '../models/users.model.js';
 import Agent from '../classes/agent.class.js';
 import User from '../classes/user.class.js';
 import AgentsUtil from '../utils/agents.util.js';
+import bcrypt from 'bcryptjs';
 import { parseFile } from '../utils/fileParser.util.js';
 import c from 'config';
 
@@ -10,6 +11,13 @@ export default class AgentsCoordinator {
 
     static createAgent = async (organizationID, agent) => {
         try {
+            const salt = await bcrypt.genSalt(12);
+
+            // Generate a unique password
+            const password = agent.password;
+
+            // Hash the generated password
+            const hashedPassword = await bcrypt.hash(password, salt);
             // If user_id is provided, check if agent with this user_id already exists
             if (agent.user_id) {
                 const existingAgent = await AgentsModel.getAgentByUserId(organizationID, agent.user_id);
@@ -42,7 +50,7 @@ export default class AgentsCoordinator {
                 agent.lName,
                 agent.email,
                 agent.username,
-                agent.password,
+                hashedPassword,
                 agent.isAdmin
             );
             
